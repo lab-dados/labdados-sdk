@@ -38,8 +38,8 @@ def analise_viabilidade(
     classes_cnj: list[str] | None = None,
     assuntos_cnj: list[str] | None = None,
     grau: list[str] | None = None,
-    ano_inicio: int | None = None,
-    ano_fim: int | None = None,
+    inicio: str | None = None,
+    fim: str | None = None,
     notas: str = "",
     local: bool = False,
     client: Client | None = None,
@@ -71,9 +71,8 @@ def analise_viabilidade(
         depende do tribunal.
     classes_cnj, assuntos_cnj, grau
         Filtros do Datajud. Códigos numéricos do CNJ.
-    ano_inicio, ano_fim
-        Recorte temporal por ano-calendário (inclusivo). ``ano_inicio=2020,
-        ano_fim=2024`` cobre 1º/jan/2020 a 31/dez/2024. ``None`` = sem
+    inicio, fim
+        Recorte temporal em ``"YYYY-MM-DD"`` (inclusivo). ``None`` = sem
         filtro temporal nesse extremo.
     notas
         Texto livre para o relatório.
@@ -102,8 +101,8 @@ def analise_viabilidade(
     ...     tribunais=["tjsp", "tjrj", "tjmg"],
     ...     classes_cnj=["7"],
     ...     assuntos_cnj=["7780"],
-    ...     ano_inicio=2020,
-    ...     ano_fim=2025,
+    ...     inicio="2020-01-01",
+    ...     fim="2025-12-31",
     ...     api_key="sk_lab_...",
     ...     saida="relatorios/",
     ... )
@@ -129,8 +128,8 @@ def analise_viabilidade(
         "filtro_classes_cnj": "\n".join(classes_cnj or []),
         "filtro_assuntos_cnj": "\n".join(assuntos_cnj or []),
         "filtro_grau": grau or [],
-        "ano_inicio": ano_inicio,
-        "ano_fim": ano_fim,
+        "recorte_inicio": inicio or "",
+        "recorte_fim": fim or "",
     }
 
     if local:

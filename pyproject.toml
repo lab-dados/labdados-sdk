@@ -83,11 +83,12 @@ dev = [
     "respx>=0.21",
 ]
 docs = [
-    # ``quartodoc<0.10`` passa kwargs (``allow_section_blank_line``) que o
-    # ``griffe>=1.0`` removeu — combinação quebra com ``TypeError`` em
-    # ``parse_numpy()``. ``quartodoc>=0.10`` já alinhado com ``griffe>=1``.
-    "quartodoc>=0.10",
-    "griffe>=1.0",
+    # ``griffe>=2.0`` removeu o kwarg ``allow_section_blank_line`` que o
+    # ``quartodoc`` ainda passa — quebra com ``TypeError`` em
+    # ``parse_numpy()``. Pinamos griffe<2 até quartodoc se atualizar.
+    # Issue de referência: machow/quartodoc.
+    "quartodoc>=0.11",
+    "griffe>=1.5,<2.0",
 ]
 
 [project.urls]

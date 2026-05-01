@@ -117,13 +117,12 @@ o `viabilidade_relatorio.md` e o `viabilidade_resultados.json`.
 
 ```{.python}
 ana = labdados.analise_viabilidade(
-    descricao="Decisões sobre direito de família — TJSP, 2020–2024",
+    descricao="Ações sobre planos de saúde — TJSP, 2020–2024",
     listagem="datajud",
     tribunais=["tjsp"],
-    classes_cnj=["7"],
+    assuntos_cnj=["11884", "14759"],
     inicio="2020-01-01",
     fim="2024-12-31",
-    local=True,
     saida="relatorios/",
 )
 print(ana["results"]["verdict"])  # "viable" | "caveats" | "unviable"
@@ -135,5 +134,4 @@ print(ana["results"]["verdict"])  # "viable" | "caveats" | "unviable"
   PaddleOCR.
 - Whisper `large-v3` em CPU em áudios longos (>1h): use o modo nuvem com
   `whisperx` (GPU T4 do escritório).
-- LLM local com mais de 13B parâmetros sem GPU: use o modo nuvem com
-  `gpt-oss-20b` ou `gpt-4.1-mini`.
+- LLM local com poucos recursos: use o modo nuvem com `gpt-4.1-mini`.

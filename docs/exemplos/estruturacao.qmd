@@ -6,6 +6,13 @@ title: "Estruturação com LLMs"
 campos estruturados (JSON) de cada documento. Útil para transformar
 acórdãos, sentenças, ou ementas em colunas de uma planilha.
 
+::: {.callout-note title="Em desenvolvimento"}
+A estruturação ainda está em fase inicial. Em breve será integrada ao
+pacote [`bdcdo/dataframeit`](https://github.com/bdcdo/dataframeit), que
+trará uma API mais madura para extração estruturada em escala. A
+superfície atual pode mudar.
+:::
+
 ## Receita 1 — Extrair campos de uma planilha de ementas
 
 ```{.python}
@@ -63,27 +70,7 @@ labdados.estruturacao(
 )
 ```
 
-## Receita 3 — Modelo brasileiro self-hosted
-
-`gpt-oss-20b` e `gemma-4-26b-it` rodam em GPU A100 na região Brazil South —
-**dados não saem do país**. Útil quando há restrição de soberania.
-
-```{.python}
-labdados.estruturacao(
-    arquivos="docs/",
-    schema={...},
-    api_key=os.environ["LABDADOS_API_KEY"],
-    modelo="gpt-oss-20b",
-    saida="out/",
-)
-```
-
-::: {.callout-warning}
-Modelos GPU self-host têm **cold start** de ~1min após ociosidade.
-A primeira chamada do dia é mais lenta — relaxe enquanto o spinner roda.
-:::
-
-## Receita 4 — Local com Ollama
+## Receita 3 — Local com Ollama
 
 Roda 100% no seu computador, sem API key:
 
@@ -105,7 +92,7 @@ labdados.estruturacao(
 )
 ```
 
-## Receita 5 — Local com OpenAI (sua chave)
+## Receita 4 — Local com OpenAI (sua chave)
 
 ```{.python}
 import os
@@ -133,7 +120,7 @@ labdados.estruturacao(
 
 | Parâmetro | Default | Quando mexer |
 |-----------|---------|--------------|
-| `modelo` | `"gpt-4.1-mini"` | `"gpt-oss-20b"` ou `"gemma-4-26b-it"` para soberania |
+| `modelo` | `"gpt-4.1-mini"` | Único modelo nuvem hoje (vLLM A100 descontinuado por custo) |
 | `coluna_texto` | `""` | Nome da coluna do CSV/XLSX que tem o texto |
 | `temperatura` | `0.0` | Mantenha 0 em extração — determinismo |
 | `max_tokens` | `4096` | Aumente se a saída JSON estiver sendo cortada |

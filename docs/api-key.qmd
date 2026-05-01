@@ -4,7 +4,7 @@ title: "Como obter e gerenciar sua API key"
 
 ## Pedir uma chave
 
-1. Acesse <https://labdados-frontend.livelydesert-3e3e3dd8.brazilsouth.azurecontainerapps.io/consultoria/api-key>.
+1. Acesse o [formulário de pedido de chave](https://labdados-frontend.livelydesert-3e3e3dd8.brazilsouth.azurecontainerapps.io/consultoria/api-key) no portal.
 2. Preencha o formulário com:
    - **Como pretende usar**: descreva o projeto (orientador, prazo, dados).
    - **Serviços**: marque OCR, transcrição, estruturação ou análise de
@@ -58,5 +58,12 @@ ou abra um novo pedido no formulário pedindo a revogação. Após revogar,
 - **Rate limit padrão:** definido em runtime pelo backend. Em geral, o SDK
   respeita o `429` automaticamente esperando alguns segundos antes da
   próxima tentativa.
+- **Cota mensal:** cada chave tem um orçamento de **R$50/mês de compute
+  na nossa infra** (default). O custo estimado de cada job é debitado do
+  saldo. Quando você manda uma pasta com 1.000 PDFs e o saldo restante
+  só cobre 200, o backend **processa os 200 que cabem** e anota no
+  e-mail/`Request.notes` quantos ficaram fora — não falha o pedido
+  inteiro. O ciclo reseta no dia 1 de cada mês.
 - **Volumes muito grandes:** combine com a equipe antes — para coletas com
-  centenas de milhares de documentos, vale planejar slots de GPU.
+  centenas de milhares de documentos, vale planejar slots de GPU e/ou
+  ajustar o orçamento mensal.

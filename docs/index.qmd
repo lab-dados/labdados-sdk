@@ -57,10 +57,10 @@ key ainda? Adicione `local=True` (precisa do extra `[ocr]` instalado).
 
 ## Como pedir uma API key
 
-A API key é gerada no fluxo de **consultoria** do portal:
-<https://labdados-frontend.livelydesert-3e3e3dd8.brazilsouth.azurecontainerapps.io/consultoria/api-key>. Você descreve o
-uso, a equipe revisa e te envia a chave por e-mail (uma única vez — guarde
-com cuidado).
+A API key é gerada no fluxo de **consultoria** do portal — acesse o
+[formulário de pedido de chave](https://labdados-frontend.livelydesert-3e3e3dd8.brazilsouth.azurecontainerapps.io/consultoria/api-key).
+Você descreve o uso, a equipe revisa e te envia a chave por e-mail
+(uma única vez — guarde com cuidado).
 
 ## Próximos passos
 

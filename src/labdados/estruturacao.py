@@ -1,10 +1,18 @@
 """
 Estruturação de textos com LLMs — extrai campos JSON conforme um schema.
 
+.. note::
+   **Em desenvolvimento.** Esta ferramenta está em fase inicial. Em
+   breve será integrada ao pacote
+   `bdcdo/dataframeit <https://github.com/bdcdo/dataframeit>`_, que
+   trará uma API mais madura para extração estruturada em escala. A
+   superfície atual pode mudar.
+
 Modo nuvem
 ----------
-Roda na infra do escritório (GPT-4.1-mini via Azure OpenAI, gpt-oss-20b ou
-gemma-4-26b-it self-hosted em Brazil South).
+Roda na infra do escritório (GPT-4.1-mini via Azure OpenAI). Os modelos
+self-host em GPU A100 (gpt-oss-20b, gemma-4-26b-it) foram descontinuados
+por custo proibitivo no padrão de uso atual.
 
 Modo local
 ----------
@@ -23,7 +31,7 @@ from labdados._io import PathLike, ensure_output_dir, resolve_inputs
 from labdados.client import Client
 from labdados.exceptions import LocalDependencyMissing
 
-MODELO_NUVEM = Literal["gpt-4.1-mini", "gpt-oss-20b", "gemma-4-26b-it"]
+MODELO_NUVEM = Literal["gpt-4.1-mini"]
 ACCEPTED_EXTENSIONS = (".txt", ".md", ".docx", ".csv", ".xlsx")
 
 
@@ -64,7 +72,9 @@ def estruturacao(
     api_key
         Chave de API do escritório (modo nuvem).
     modelo
-        ``"gpt-4.1-mini"`` (default), ``"gpt-oss-20b"`` ou ``"gemma-4-26b-it"``.
+        ``"gpt-4.1-mini"`` (default — único modelo nuvem disponível
+        hoje). Os modelos self-host em GPU A100 (gpt-oss-20b,
+        gemma-4-26b-it) foram descontinuados por custo.
     coluna_texto
         Para CSV/XLSX: nome da coluna que contém o texto a ser estruturado.
         Vazio = concatena todas as colunas da linha.

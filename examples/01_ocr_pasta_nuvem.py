@@ -17,7 +17,7 @@ def main() -> None:
     pasta = sys.argv[1]
     api_key = os.environ.get("LABDADOS_API_KEY")
     if not api_key:
-        sys.exit("Defina LABDADOS_API_KEY no ambiente (peça em https://labdados-frontend.livelydesert-3e3e3dd8.brazilsouth.azurecontainerapps.io/consultoria/api-key)")
+        sys.exit("Defina LABDADOS_API_KEY no ambiente (peça uma chave no portal: /consultoria/api-key)")
 
     saida = labdados.ocr(
         arquivos=pasta,

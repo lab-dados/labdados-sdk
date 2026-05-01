@@ -45,8 +45,8 @@ class Client:
     ----------
     api_key
         Chave gerada pelo escritório. Quando ``None``, lê de
-        ``LABDADOS_API_KEY`` no ambiente. Solicite em
-        ``https://labdados-frontend.livelydesert-3e3e3dd8.brazilsouth.azurecontainerapps.io/consultoria/api-key``.
+        ``LABDADOS_API_KEY`` no ambiente. Solicite no portal em
+        ``/consultoria/api-key``.
     base_url
         URL do backend. Quando ``None``, lê de ``LABDADOS_BASE_URL`` no
         ambiente; se o env var também não estiver setada, usa a URL
@@ -108,8 +108,8 @@ class Client:
     def _headers(self) -> dict[str, str]:
         if not self.api_key:
             raise ApiKeyError(
-                "Operação no modo nuvem exige uma API key. Peça uma em "
-                "https://labdados-frontend.livelydesert-3e3e3dd8.brazilsouth.azurecontainerapps.io/consultoria/api-key — ou "
+                "Operação no modo nuvem exige uma API key. "
+                "Peça uma no portal em /consultoria/api-key — ou "
                 "use o modo local com `local=True`."
             )
         return {
@@ -324,11 +324,9 @@ class Client:
         kwargs.setdefault("client", self)
         return _f(**kwargs)
 
-    def analise_viabilidade(self, **kwargs: Any) -> Any:
-        from labdados.analise_viabilidade import analise_viabilidade as _f
-
-        kwargs.setdefault("client", self)
-        return _f(**kwargs)
+    # Nota: ``analise_viabilidade`` não é exposta como método do Client porque
+    # roda sempre local (sem chamar a API do escritório, sem precisar de chave).
+    # Use ``labdados.analise_viabilidade(...)`` direto.
 
 
 def _json_or_raise(r: httpx.Response) -> dict[str, Any]:

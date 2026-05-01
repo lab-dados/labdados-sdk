@@ -1,17 +1,15 @@
 """
 Análise de viabilidade — estima volume de processos antes de uma raspagem.
 
-Modo nuvem
-----------
-Cria pedido de ``consultoria-levantamento`` já aprovado, dispara a análise
-no backend e baixa o relatório (PDF + MD) quando pronto.
+Roda **sempre local** (no próprio computador do usuário): a análise
+consulta APIs públicas (Datajud do CNJ + bancos de jurisprudência via
+juscraper), constrói o JSON de resultados e renderiza o relatório
+PDF/MD via Quarto. Sem dependência da infra nuvem do escritório, sem
+API key, sem cota.
 
-Modo local
-----------
-Roda a **mesma** análise via ``labdados-core`` — núcleo compartilhado com
-o backend, garantindo que a regra de veredito e o template do relatório
-fiquem byte-equivalentes ao que o escritório gera. Sem o Quarto+Typst
-no sistema, retorna apenas o markdown.
+A lógica vive em ``labdados-core`` — mesmo núcleo que o admin do
+escritório usa quando aprova um pedido de consultoria-levantamento via
+UI. Garantia de paridade: o veredito e o template são byte-equivalentes.
 """
 
 from __future__ import annotations
@@ -21,7 +19,6 @@ from pathlib import Path
 from typing import Any, Literal
 
 from labdados._io import PathLike, ensure_output_dir
-from labdados.client import Client
 from labdados.exceptions import LocalDependencyMissing
 
 ListagemTipo = Literal["datajud", "jurisprudencia", "sentencas"]
@@ -33,7 +30,6 @@ def analise_viabilidade(
     listagem: ListagemTipo,
     tribunais: list[str],
     saida: PathLike | None = None,
-    api_key: str | None = None,
     palavras_chave: str = "",
     classes_cnj: list[str] | None = None,
     assuntos_cnj: list[str] | None = None,
@@ -41,11 +37,16 @@ def analise_viabilidade(
     inicio: str | None = None,
     fim: str | None = None,
     notas: str = "",
-    local: bool = False,
-    client: Client | None = None,
     progress: bool = True,
 ) -> dict[str, Any]:
-    """Estima o volume de processos antes de uma coleta.
+    """Estima o volume de processos antes de uma coleta — sempre local.
+
+    Esta função **não tem modo nuvem**: a análise é leve (consulta APIs
+    públicas como Datajud e juscraper, sem GPU nem dados sigilosos), e
+    rodar local elimina latência de fila do escritório, custo de
+    infraestrutura e cota de API key. Requer apenas
+    ``pip install labdados[viabilidade]`` e — opcionalmente — o
+    [Quarto](https://quarto.org) + Typst para o relatório PDF.
 
     Parameters
     ----------
@@ -63,61 +64,42 @@ def analise_viabilidade(
     tribunais
         Códigos dos tribunais (``"tjsp"``, ``"tjrj"``, ``"trf3"``, ...).
     saida
-        Pasta de saída (PDF + MD).
-    api_key
-        Chave de API (modo nuvem).
+        Pasta de saída (PDF + MD + JSON com os resultados).
     palavras_chave
         Para ``listagem="jurisprudencia"`` ou ``"sentencas"``. Sintaxe
         depende do tribunal.
     classes_cnj, assuntos_cnj, grau
-        Filtros do Datajud. Códigos numéricos do CNJ.
+        Filtros do Datajud. Códigos numéricos da TPU do CNJ — listas
+        completas em [abjur/tpur](https://github.com/abjur/tpur).
     inicio, fim
         Recorte temporal em ``"YYYY-MM-DD"`` (inclusivo). ``None`` = sem
         filtro temporal nesse extremo.
     notas
         Texto livre para o relatório.
-    local
-        Se ``True``, roda direto via ``labdados-core``
-        (``pip install labdados[viabilidade]``).
-    client
-        Cliente reaproveitado (modo nuvem).
     progress
         Spinner no stderr.
 
     Returns
     -------
     dict
-        ``{"results": ..., "report_pdf": Path | None, "report_md": Path | None,
-        "request_id": str | None}``. ``request_id`` é populado no modo nuvem.
+        ``{"results": ..., "report_pdf": Path | None, "report_md": Path | None}``.
 
     Examples
     --------
-    Modo nuvem para Datajud:
+    Datajud — Tratamento Domiciliar (Home Care) e Fornecimento de
+    Medicamentos no TJSP, 2020 a 2024:
 
     >>> import labdados
     >>> ana = labdados.analise_viabilidade(
-    ...     descricao="Ações de saúde suplementar contra planos de saúde — 2020 a 2025",
+    ...     descricao="Acoes contra planos de saude — TJSP, 2020-2024",
     ...     listagem="datajud",
-    ...     tribunais=["tjsp", "tjrj", "tjmg"],
-    ...     classes_cnj=["7"],
-    ...     assuntos_cnj=["7780"],
+    ...     tribunais=["tjsp"],
+    ...     assuntos_cnj=["11884", "14759"],   # Medicamentos + Home Care
     ...     inicio="2020-01-01",
-    ...     fim="2025-12-31",
-    ...     api_key="sk_lab_...",
+    ...     fim="2024-12-31",
     ...     saida="relatorios/",
     ... )
-    >>> print(ana["results"]["verdict"])  # "viable" / "caveats" / "unviable"
-
-    Modo local para jurisprudência:
-
-    >>> ana = labdados.analise_viabilidade(
-    ...     descricao="Decisões sobre nepotismo no STF",
-    ...     listagem="jurisprudencia",
-    ...     tribunais=["stf"],
-    ...     palavras_chave="nepotismo",
-    ...     local=True,
-    ...     saida="relatorios/",
-    ... )
+    >>> print(ana["results"]["verdict"])
     """
     saida_dir = ensure_output_dir(saida)
     form: dict[str, Any] = {
@@ -131,48 +113,7 @@ def analise_viabilidade(
         "recorte_inicio": inicio or "",
         "recorte_fim": fim or "",
     }
-
-    if local:
-        return _viab_local(form, saida_dir=saida_dir, notas=notas, progress=progress)
-    return _viab_remote(
-        form,
-        notas=notas,
-        saida_dir=saida_dir,
-        api_key=api_key,
-        client=client,
-        progress=progress,
-    )
-
-
-def _viab_remote(
-    form: dict[str, Any],
-    *,
-    notas: str,
-    saida_dir: Path,
-    api_key: str | None,
-    client: Client | None,
-    progress: bool,
-) -> dict[str, Any]:
-    cli = client or Client(api_key=api_key, progress=progress)
-    req = cli._post("/api/v1/viability", {"form": form, "notes": notas or None})
-    final = cli._poll_viability(req["id"])
-    analysis = final.get("analysis") or {}
-
-    pdf_path: Path | None = None
-    md_path: Path | None = None
-    if analysis.get("report_pdf_path"):
-        url = cli._get(f"/api/v1/viability/{req['id']}/report-url?format=pdf")["url"]
-        pdf_path = cli._download(url, saida_dir / f"viabilidade_{req['id'][:8]}.pdf")
-    if analysis.get("report_md_path"):
-        url = cli._get(f"/api/v1/viability/{req['id']}/report-url?format=md")["url"]
-        md_path = cli._download(url, saida_dir / f"viabilidade_{req['id'][:8]}.md")
-
-    return {
-        "request_id": req["id"],
-        "results": analysis.get("results") or {},
-        "report_pdf": pdf_path,
-        "report_md": md_path,
-    }
+    return _viab_local(form, saida_dir=saida_dir, notas=notas, progress=progress)
 
 
 def _viab_local(
@@ -188,7 +129,7 @@ def _viab_local(
         from labdados_core.viabilidade import analyze_form, render_report
     except ImportError as exc:
         raise LocalDependencyMissing(
-            "Análise local requer:\n    pip install labdados[viabilidade]"
+            "Análise de viabilidade requer:\n    pip install labdados[viabilidade]"
         ) from exc
 
     from labdados._progress import clear_status, render_status
@@ -233,7 +174,6 @@ def _viab_local(
         encoding="utf-8",
     )
     return {
-        "request_id": None,
         "results": results,
         "report_pdf": pdf_path,
         "report_md": md_path,

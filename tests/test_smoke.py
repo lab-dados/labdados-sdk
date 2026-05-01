@@ -144,9 +144,9 @@ def test_analise_viabilidade_signature():
 
     sig = inspect.signature(labdados.analise_viabilidade)
     expected = {
-        "descricao", "listagem", "tribunais", "saida", "api_key",
+        "descricao", "listagem", "tribunais", "saida",
         "palavras_chave", "classes_cnj", "assuntos_cnj", "grau",
-        "inicio", "fim", "notas", "local", "client", "progress",
+        "inicio", "fim", "notas", "progress",
     }
     assert expected <= set(sig.parameters)
 

@@ -54,8 +54,8 @@ def ocr(
         No modo nuvem, baixa o ``.zip`` retornado pelo serviço; no modo
         local, escreve um arquivo de texto por PDF processado.
     api_key
-        Chave de API (apenas para modo nuvem). Peça uma em
-        https://labdados-frontend.livelydesert-3e3e3dd8.brazilsouth.azurecontainerapps.io/consultoria/api-key.
+        Chave de API (apenas para modo nuvem). Peça uma no portal,
+        em ``/consultoria/api-key``.
     modelo
         ``"pymupdf-tesseract"`` (default — leve, CPU) ou ``"paddleocr"``
         (mais preciso em layouts complexos, GPU).

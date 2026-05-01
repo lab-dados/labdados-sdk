@@ -25,7 +25,7 @@ Lógica específica de um → fica nele.
 
 Ver também:
 - [`escritorio-servicos/CLAUDE.md`](https://github.com/jtrecenti/escritorio-servicos/blob/main/CLAUDE.md)
-- [`labdados-core/CLAUDE.md`](https://github.com/jtrecenti/labdados-core/blob/main/CLAUDE.md)
+- [`labdados-core/CLAUDE.md`](https://github.com/lab-dados/labdados-core/blob/main/CLAUDE.md)
 
 ## O que este pacote é (e o que **não** é)
 
@@ -155,6 +155,6 @@ quando precisarem de internet ou binários — mas o código deve ser correto).
 
 - **Pesquisadores** (mestrandos, doutorandos, alunos de IC) com Python básico.
 - **Equipe LabDados** rodando coletas em larga escala em scripts.
-- Eventualmente o **próprio backend** do escritório pode adotar o SDK como
-  cliente para rodar serviços auxiliares — o desenho remoto/local foi feito
-  com isso em mente.
+- O **backend do escritório NÃO usa o SDK** (evita dep circular). Lógica
+  compartilhada vai pra ``labdados-core``, consumida pela ``services/viability/``
+  no monorepo e pelo ``_viab_local`` aqui no SDK.

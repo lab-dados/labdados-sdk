@@ -71,7 +71,7 @@ estruturacao = [
 # pacote núcleo que o backend também consome (mesmas regras de veredito,
 # mesmo template do relatório, sem chance de divergir).
 viabilidade = [
-    "labdados-core[juscraper] @ git+https://github.com/jtrecenti/labdados-core@main",
+    "labdados-core[juscraper] @ git+https://github.com/lab-dados/labdados-core@main",
 ]
 all = [
     "labdados[ocr,transcricao,estruturacao,viabilidade]",

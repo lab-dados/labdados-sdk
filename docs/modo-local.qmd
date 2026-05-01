@@ -1,0 +1,139 @@
+---
+title: "Modo local"
+---
+
+Todas as funções aceitam `local=True`. Nesse modo, o processamento acontece
+no seu próprio computador — nenhum dado sai dele e nenhuma API key é
+necessária.
+
+## Quando usar
+
+| Cenário | Modo recomendado |
+|---------|------------------|
+| Testar o SDK antes de pedir API key | Local |
+| Dados sensíveis que não podem sair do laptop | Local |
+| Volume pequeno (~10 documentos) onde subir é custoso | Local |
+| Volume grande, vários PDFs/áudios | Nuvem |
+| Modelos pesados (Whisper Large, GPT-4) sem GPU local | Nuvem |
+| Diarização de áudio (separar falantes) | Nuvem (WhisperX) |
+
+## Extras opcionais
+
+Cada serviço tem extras independentes — instale apenas os que você usa:
+
+```bash
+pip install labdados[ocr]               # PyMuPDF + pytesseract + Pillow
+pip install labdados[transcricao]       # faster-whisper
+pip install labdados[estruturacao]      # cliente openai (Ollama, Azure OpenAI, OpenAI)
+pip install labdados[viabilidade]       # juscraper + jinja2 (+ Quarto opcional via OS)
+pip install labdados[all]               # tudo
+```
+
+### OCR local
+
+Precisa também do **binário do Tesseract** instalado no sistema:
+
+- macOS: `brew install tesseract tesseract-lang`
+- Ubuntu/Debian: `apt-get install tesseract-ocr tesseract-ocr-por`
+- Windows: <https://github.com/UB-Mannheim/tesseract/wiki>
+
+Use o argumento `idiomas` para escolher (ex.: `"por+eng"`, `"chi_sim"`).
+
+```{.python}
+import labdados
+
+labdados.ocr(
+    arquivos="pdfs/",
+    local=True,
+    idiomas="por+eng",
+    formato="md",
+    saida="resultados/",
+)
+```
+
+### Transcrição local
+
+`faster-whisper` baixa o modelo automaticamente na primeira execução
+(~3GB para `large-v3`, ~150MB para `tiny`). Em CPU, espere ~1× a duração
+do áudio com `small`. Em GPU CUDA, ~5× mais rápido.
+
+```{.python}
+labdados.transcricao(
+    arquivos="reuniao.mp3",
+    local=True,
+    modelo_local="small",   # tiny | base | small | medium | large-v3
+    idioma="pt",
+    formato="srt",
+)
+```
+
+::: {.callout-note}
+Diarização local não está incluída no extra `[transcricao]` — pyannote
+tem dependências pesadas e exige token HuggingFace. Para diarização use
+modo nuvem com `modelo="whisperx"`.
+:::
+
+### Estruturação local
+
+Use qualquer servidor compatível com a API da OpenAI. O default aponta
+pra **Ollama** (gratuito, fácil de instalar):
+
+```bash
+# Instale o Ollama em https://ollama.com
+ollama pull qwen2.5:7b   # ou llama3.1, mistral, ...
+ollama serve             # roda em localhost:11434
+```
+
+```{.python}
+labdados.estruturacao(
+    arquivos="textos/",
+    schema={
+        "type": "object",
+        "properties": {"resumo": {"type": "string"}, "decisao": {"type": "string"}},
+    },
+    local=True,
+    modelo_local="qwen2.5:7b",
+)
+```
+
+Para Azure OpenAI (chave do usuário):
+
+```{.python}
+labdados.estruturacao(
+    arquivos="textos/",
+    schema={...},
+    local=True,
+    base_url_local="https://meu-resource.openai.azure.com/openai/deployments/gpt-4o-mini",
+    api_key_local="<sua chave da Azure>",
+    modelo_local="gpt-4o-mini",
+)
+```
+
+### Análise de viabilidade local
+
+Roda direto no `juscraper` + Datajud. Para o relatório PDF, instale o
+[Quarto](https://quarto.org) no sistema. Sem Quarto, você ainda recebe
+o `viabilidade_relatorio.md` e o `viabilidade_resultados.json`.
+
+```{.python}
+ana = labdados.analise_viabilidade(
+    descricao="Decisões sobre direito de família — TJSP, 2020–2024",
+    listagem="datajud",
+    tribunais=["tjsp"],
+    classes_cnj=["7"],
+    inicio="2020-01-01",
+    fim="2024-12-31",
+    local=True,
+    saida="relatorios/",
+)
+print(ana["results"]["verdict"])  # "viable" | "caveats" | "unviable"
+```
+
+## Quando o local fica lento
+
+- Tesseract em PDFs grandes (>500 páginas): considere o modo nuvem com
+  PaddleOCR.
+- Whisper `large-v3` em CPU em áudios longos (>1h): use o modo nuvem com
+  `whisperx` (GPU T4 do escritório).
+- LLM local com mais de 13B parâmetros sem GPU: use o modo nuvem com
+  `gpt-oss-20b` ou `gpt-4.1-mini`.

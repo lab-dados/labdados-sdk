@@ -1,0 +1,119 @@
+---
+title: "Análise de viabilidade"
+---
+
+[`labdados.analise_viabilidade`](../api/analise_viabilidade.qmd) é o passo
+**antes** de fazer uma raspagem grande. Ela:
+
+1. Conta quantos processos existem no recorte (Datajud) ou quantos resultados
+   aparecem nos filtros (jurisprudência / sentenças).
+2. Gera um relatório PDF + MD com a estimativa, ressalvas e veredito
+   (`viable`, `caveats`, `unviable`).
+
+## Receita 1 — Datajud com filtro por classe e assunto
+
+```{.python}
+import os, labdados
+
+ana = labdados.analise_viabilidade(
+    descricao="Ações judiciais sobre planos de saúde — TJSP, TJRJ, TJMG (2020–2024)",
+    listagem="datajud",
+    tribunais=["tjsp", "tjrj", "tjmg"],
+    classes_cnj=["7"],                # Procedimento Comum Cível
+    assuntos_cnj=["7780"],            # Saúde Suplementar (código SGT)
+    inicio="2020-01-01",
+    fim="2024-12-31",
+    api_key=os.environ["LABDADOS_API_KEY"],
+    saida="relatorios/",
+)
+
+print(ana["results"]["verdict"])
+# 'viable' / 'caveats' / 'unviable'
+print(ana["results"]["total_aproximado"])
+print(ana["report_pdf"])               # Path do PDF baixado
+```
+
+## Receita 2 — Jurisprudência (acórdãos)
+
+Para 2º grau via banco do tribunal — a contagem total não é exposta na busca
+pública, então o relatório usa a 1ª página como indicação:
+
+```{.python}
+ana = labdados.analise_viabilidade(
+    descricao="Acórdãos sobre nepotismo no STF e STJ",
+    listagem="jurisprudencia",
+    tribunais=["stf", "stj"],
+    palavras_chave="nepotismo",
+    api_key=os.environ["LABDADOS_API_KEY"],
+    saida="relatorios/",
+)
+```
+
+## Receita 3 — Sentenças (1º grau)
+
+Disponibilidade limitada — só TJSP, TJBA e alguns outros expõem busca de
+1º grau pública.
+
+```{.python}
+ana = labdados.analise_viabilidade(
+    descricao="Sentenças de TJSP citando 'home office' em direito do trabalho",
+    listagem="sentencas",
+    tribunais=["tjsp"],
+    palavras_chave='"home office" "vínculo de emprego"',
+    api_key=os.environ["LABDADOS_API_KEY"],
+    saida="relatorios/",
+)
+```
+
+## Receita 4 — Modo local
+
+A análise é o serviço **mais natural** para rodar local — ela só consulta
+APIs públicas (Datajud, juscraper). O extra é leve:
+
+```{.bash}
+pip install labdados[viabilidade]
+# Para gerar o PDF, instale Quarto: https://quarto.org
+```
+
+```{.python}
+ana = labdados.analise_viabilidade(
+    descricao="Decisões sobre direito de família — TJSP, 2020-2024",
+    listagem="datajud",
+    tribunais=["tjsp"],
+    classes_cnj=["7"],
+    inicio="2020-01-01",
+    fim="2024-12-31",
+    local=True,
+    saida="relatorios/",
+)
+# relatorios/viabilidade_resultados.json (sempre)
+# relatorios/viabilidade_relatorio.md (sempre que jinja2 estiver instalado)
+# relatorios/viabilidade_relatorio.pdf (se Quarto+Typst estiverem no PATH)
+```
+
+## Como interpretar o veredito
+
+| Veredito | Significado |
+|----------|-------------|
+| `viable` | Volume gerenciável (Datajud: até 50 mil) e sem erros — pode coletar |
+| `caveats` | Volume alto **ou** erros parciais — fatie em sub-recortes |
+| `unviable` | Sem resultados ou todos os tribunais falharam — revise filtros |
+
+`results["highlights"]` traz uma lista textual dos pontos de atenção, prontos
+pra colar num relatório.
+
+## Lookup de códigos CNJ
+
+- **Classes processuais e assuntos:** [SGT do CNJ](https://www.cnj.jus.br/sgt/consulta_publica_assuntos.php).
+- **Tribunais aceitos:** todos os tribunais cobertos pelo `juscraper`. Para
+  Datajud: tribunais que publicam no <https://api-publica.datajud.cnj.jus.br>.
+
+## Parâmetros principais
+
+| Parâmetro | Quando preencher |
+|-----------|------------------|
+| `listagem` | `"datajud"` para estudos prospectivos com classe/assunto; `"jurisprudencia"` ou `"sentencas"` para busca textual |
+| `palavras_chave` | Apenas para `jurisprudencia` / `sentencas` |
+| `classes_cnj` / `assuntos_cnj` | Apenas para `datajud` |
+| `inicio` / `fim` | Recorte temporal — opcional |
+| `notas` | Texto livre que vai pro PDF — útil pra documentar a decisão |

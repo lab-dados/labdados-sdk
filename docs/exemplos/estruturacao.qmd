@@ -1,0 +1,140 @@
+---
+title: "Estruturação com LLMs"
+---
+
+[`labdados.estruturacao`](../api/estruturacao.qmd) usa um LLM para extrair
+campos estruturados (JSON) de cada documento. Útil para transformar
+acórdãos, sentenças, ou ementas em colunas de uma planilha.
+
+## Receita 1 — Extrair campos de uma planilha de ementas
+
+```{.python}
+import os, labdados
+
+schema = {
+    "type": "object",
+    "properties": {
+        "tribunal": {"type": "string", "description": "Sigla do tribunal"},
+        "ano": {"type": "integer"},
+        "tema": {"type": "string", "description": "Direito do consumidor, família..."},
+        "procedente": {
+            "type": "boolean",
+            "description": "Se o pedido principal foi julgado procedente",
+        },
+    },
+    "required": ["tribunal", "ano", "tema"],
+}
+
+labdados.estruturacao(
+    arquivos="ementas.csv",
+    coluna_texto="ementa",            # qual coluna do CSV contém o texto
+    schema=schema,
+    prompt_sistema=(
+        "Você está extraindo metadados de ementas de acórdãos brasileiros. "
+        "Se o tema não for claro, use 'desconhecido'."
+    ),
+    api_key=os.environ["LABDADOS_API_KEY"],
+    saida="extraido/",
+    modelo="gpt-4.1-mini",
+)
+# extraido/estruturacao_<id>.zip → ementas.json (uma extração por linha do CSV)
+```
+
+## Receita 2 — Documentos em texto livre
+
+Se cada arquivo é um documento independente (`.txt`, `.md`, `.docx`), passe
+a pasta ou a lista. O LLM gera um JSON por arquivo:
+
+```{.python}
+labdados.estruturacao(
+    arquivos="sentencas/",            # pasta com .txt
+    schema={
+        "type": "object",
+        "properties": {
+            "autor": {"type": "string"},
+            "reu": {"type": "string"},
+            "valor_causa": {"type": "number"},
+            "fundamento_principal": {"type": "string"},
+        },
+    },
+    prompt_sistema="Você lê sentenças de 1ª instância em casos cíveis.",
+    api_key=os.environ["LABDADOS_API_KEY"],
+    saida="extraido/",
+)
+```
+
+## Receita 3 — Modelo brasileiro self-hosted
+
+`gpt-oss-20b` e `gemma-4-26b-it` rodam em GPU A100 na região Brazil South —
+**dados não saem do país**. Útil quando há restrição de soberania.
+
+```{.python}
+labdados.estruturacao(
+    arquivos="docs/",
+    schema={...},
+    api_key=os.environ["LABDADOS_API_KEY"],
+    modelo="gpt-oss-20b",
+    saida="out/",
+)
+```
+
+::: {.callout-warning}
+Modelos GPU self-host têm **cold start** de ~1min após ociosidade.
+A primeira chamada do dia é mais lenta — relaxe enquanto o spinner roda.
+:::
+
+## Receita 4 — Local com Ollama
+
+Roda 100% no seu computador, sem API key:
+
+```{.bash}
+# Instale Ollama em https://ollama.com
+ollama pull qwen2.5:7b
+ollama serve
+
+pip install labdados[estruturacao]
+```
+
+```{.python}
+labdados.estruturacao(
+    arquivos="docs/",
+    schema={"type": "object", "properties": {"resumo": {"type": "string"}}},
+    local=True,
+    modelo_local="qwen2.5:7b",
+    saida="out/",
+)
+```
+
+## Receita 5 — Local com OpenAI (sua chave)
+
+```{.python}
+import os
+labdados.estruturacao(
+    arquivos="docs/",
+    schema={...},
+    local=True,
+    base_url_local="https://api.openai.com/v1",
+    api_key_local=os.environ["OPENAI_API_KEY"],
+    modelo_local="gpt-4o-mini",
+)
+```
+
+## Dicas para o schema
+
+- **Inclua `description`** em cada campo — o LLM lê e melhora a extração.
+- **Use `required`** apenas para o que sempre tem que vir preenchido. Para
+  campos opcionais, deixe fora do `required` (a LLM pode retornar `null`).
+- **Tipos suportados:** `string`, `integer`, `number`, `boolean`, `array`,
+  `object`. Para listas tipadas: `{"type": "array", "items": {"type": "string"}}`.
+- **Enums** funcionam bem para classificação:
+  `{"type": "string", "enum": ["procedente", "improcedente", "parcial"]}`.
+
+## Parâmetros principais
+
+| Parâmetro | Default | Quando mexer |
+|-----------|---------|--------------|
+| `modelo` | `"gpt-4.1-mini"` | `"gpt-oss-20b"` ou `"gemma-4-26b-it"` para soberania |
+| `coluna_texto` | `""` | Nome da coluna do CSV/XLSX que tem o texto |
+| `temperatura` | `0.0` | Mantenha 0 em extração — determinismo |
+| `max_tokens` | `4096` | Aumente se a saída JSON estiver sendo cortada |
+| `prompt_sistema` | `""` | Sempre escreva — melhora muito a qualidade |

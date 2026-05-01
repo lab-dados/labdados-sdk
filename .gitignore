@@ -1,0 +1,42 @@
+# Python
+__pycache__/
+*.py[cod]
+*.egg-info/
+*.egg
+build/
+dist/
+.venv/
+venv/
+.eggs/
+.tox/
+.pytest_cache/
+.ruff_cache/
+.mypy_cache/
+
+# uv / pip
+*.lock
+!uv.lock
+
+# Quarto / docs
+docs/_site/
+docs/.quarto/
+docs/api/
+*.qmd.html
+*_files/
+
+# Editores
+.vscode/
+.idea/
+*.swp
+
+# Sistema
+.DS_Store
+Thumbs.db
+
+# Segredos e dados de teste
+.env
+.env.*
+!.env.example
+*.api-key
+test_data/
+scratch/

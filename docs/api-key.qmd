@@ -1,0 +1,62 @@
+---
+title: "Como obter e gerenciar sua API key"
+---
+
+## Pedir uma chave
+
+1. Acesse <https://escritorio.labdados.fgv.br/consultoria/api-key>.
+2. Preencha o formulário com:
+   - **Como pretende usar**: descreva o projeto (orientador, prazo, dados).
+   - **Serviços**: marque OCR, transcrição, estruturação ou análise de
+     viabilidade.
+   - **Volume estimado**: ordem de grandeza (ex.: "5 mil PDFs", "20h de
+     áudio").
+3. A equipe LabDados revisa em até 1 semana. Aprovado → você recebe a chave
+   por e-mail.
+
+::: {.callout-warning}
+A chave é mostrada **uma única vez** no e-mail. Se perder, peça uma nova —
+não temos como recuperar.
+:::
+
+## Como guardar
+
+A chave é um segredo equivalente a uma senha. Algumas práticas:
+
+- **Não cole** em scripts versionados no GitHub. Use uma variável de
+  ambiente:
+
+  ```{.bash}
+  export LABDADOS_API_KEY="sk_lab_..."
+  ```
+
+  ```{.python}
+  import os
+  import labdados
+  client = labdados.Client(api_key=os.environ["LABDADOS_API_KEY"])
+  ```
+
+- Em notebooks: use `getpass.getpass()` para colar sem ecoar a chave:
+
+  ```{.python}
+  import getpass, labdados
+  client = labdados.Client(api_key=getpass.getpass("API key: "))
+  ```
+
+- Em laboratórios compartilhados: cada pessoa pede a própria chave. As
+  Requests ficam vinculadas à chave que as criou — assim cada pessoa só vê
+  os próprios pedidos.
+
+## Revogar / renovar
+
+Caso suspeite que a chave vazou, escreva pra <labdados.direitosp@fgv.br>
+ou abra um novo pedido no formulário pedindo a revogação. Após revogar,
+`Client.test_connection()` passa a retornar `ApiKeyError` (HTTP 403).
+
+## Limites de uso
+
+- **Rate limit padrão:** definido em runtime pelo backend. Em geral, o SDK
+  respeita o `429` automaticamente esperando alguns segundos antes da
+  próxima tentativa.
+- **Volumes muito grandes:** combine com a equipe antes — para coletas com
+  centenas de milhares de documentos, vale planejar slots de GPU.

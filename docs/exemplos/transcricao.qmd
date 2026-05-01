@@ -1,0 +1,127 @@
+---
+title: "Transcrição de áudio"
+---
+
+[`labdados.transcricao`](../api/transcricao.qmd) usa Whisper (Large V3 Turbo
+ou WhisperX) para transformar áudio em texto. Suporta `.mp3`, `.wav`,
+`.m4a`, `.ogg`, `.flac`, `.wma`.
+
+## Receita 1 — Entrevista única, na nuvem
+
+```{.python}
+import os, labdados
+
+labdados.transcricao(
+    arquivos="entrevista_juiz.m4a",
+    api_key=os.environ["LABDADOS_API_KEY"],
+    saida="transcricoes/",
+    idioma="pt",
+    formato="srt",                  # legenda — abre em qualquer player
+)
+# transcricoes/transcricao_<id>.zip → entrevista_juiz.srt
+```
+
+## Receita 2 — Audiência com vários falantes (diarização)
+
+Diarização separa **quem falou o quê**. Exige modelo WhisperX (sem ele,
+o SDK levanta `ValueError` cedo):
+
+```{.python}
+labdados.transcricao(
+    arquivos="audiencia.mp3",
+    api_key=os.environ["LABDADOS_API_KEY"],
+    saida="transcricoes/",
+    modelo="whisperx",
+    diarizacao=True,
+    num_falantes=4,                 # juiz + procurador + 2 testemunhas
+    formato="srt",
+)
+```
+
+A saída marca cada trecho com `SPEAKER_00`, `SPEAKER_01`, ...
+
+## Receita 3 — Pasta inteira de podcasts
+
+```{.python}
+labdados.transcricao(
+    arquivos="podcasts/",
+    api_key=os.environ["LABDADOS_API_KEY"],
+    saida="textos_podcasts/",
+    idioma="pt",
+    formato="txt",
+    timestamps=True,                # [00:01:23] no início de cada trecho
+)
+```
+
+## Receita 4 — Local, sem GPU
+
+```{.bash}
+pip install labdados[transcricao]
+```
+
+```{.python}
+labdados.transcricao(
+    arquivos="reuniao.mp3",
+    local=True,
+    modelo_local="small",           # bom equilíbrio precisão / tempo em CPU
+    idioma="pt",
+    formato="srt",
+    saida="resultados/",
+)
+```
+
+::: {.callout-tip}
+Tabela rápida de modelos do `faster-whisper`:
+
+| Modelo | Tamanho | Qualidade | Velocidade em CPU |
+|--------|--------:|-----------|-------------------|
+| `tiny` | 75MB | ★ | rápido |
+| `base` | 145MB | ★★ | rápido |
+| `small` | 480MB | ★★★ | médio |
+| `medium` | 1.5GB | ★★★★ | lento |
+| `large-v3` | 3GB | ★★★★★ | muito lento (use GPU) |
+:::
+
+## Receita 5 — Áudio em outro idioma
+
+```{.python}
+labdados.transcricao(
+    arquivos="entrevista_es.mp3",
+    api_key=os.environ["LABDADOS_API_KEY"],
+    idioma="es",                    # espanhol
+    formato="txt",
+    saida="resultados/",
+)
+```
+
+Use `"auto"` quando o idioma não é conhecido — o Whisper tenta detectar.
+
+## Quando o áudio é muito longo
+
+O backend tem timeout total de 4 horas. Áudios maiores que isso devem ser
+quebrados antes:
+
+```{.bash}
+# Dividir um audio.mp3 em pedaços de 2h
+ffmpeg -i audio.mp3 -f segment -segment_time 7200 -c copy parte_%02d.mp3
+```
+
+```{.python}
+labdados.transcricao(
+    arquivos="parte_00.mp3 parte_01.mp3 parte_02.mp3".split(),
+    api_key=os.environ["LABDADOS_API_KEY"],
+    saida="resultados/",
+    modelo="whisperx",              # usar diarização integrada por arquivo
+)
+```
+
+## Parâmetros principais
+
+| Parâmetro | Default | Quando mexer |
+|-----------|---------|--------------|
+| `modelo` | `"whisper-large-v3-turbo"` | `"whisperx"` para diarização ou timestamps por palavra |
+| `idioma` | `"pt"` | Outros idiomas (ISO 639-1) ou `"auto"` |
+| `diarizacao` | `False` | `True` (exige `whisperx`) |
+| `num_falantes` | `0` (auto) | Quando você sabe quantas pessoas falam |
+| `formato` | `"srt"` | `"txt"` para texto corrido, `"vtt"` para web |
+| `timestamps` | `True` | `False` no `txt` para suprimir `[hh:mm:ss]` |

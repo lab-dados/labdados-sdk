@@ -1,0 +1,70 @@
+---
+title: "labdados — SDK Python"
+subtitle: "Cliente oficial dos serviços do escritório de apoio do LabDados (FGV Direito SP)"
+---
+
+## O que é
+
+`labdados` é o pacote Python para usar os serviços do **escritório de apoio
+do LabDados** direto de notebooks e scripts. Ele cobre quatro tarefas que
+aparecem o tempo todo em pesquisa empírica em direito:
+
+| Função | O que faz | Tempo típico |
+|--------|-----------|--------------|
+| [`labdados.ocr`](api/ocr.qmd) | Extrai texto de PDFs (nativos ou escaneados) | ~5s/página |
+| [`labdados.transcricao`](api/transcricao.qmd) | Transcreve áudio (Whisper) com diarização opcional | ~0.3× duração |
+| [`labdados.estruturacao`](api/estruturacao.qmd) | Extrai campos JSON de textos com LLM | ~2s/documento |
+| [`labdados.analise_viabilidade`](api/analise_viabilidade.qmd) | Estima volume de processos antes de coletar | 30s–5min |
+
+Cada função roda em **dois modos**:
+
+- **Nuvem** (default) — processa na infra do escritório. Rápido em volume
+  alto, GPU disponível, dispensa setup local. Exige uma [API key](api-key.qmd).
+- **Local** (`local=True`) — processa no próprio computador. Útil para
+  testes, dados sensíveis que não saem do laptop, ou quando você não tem
+  uma API key ainda.
+
+## Instalação
+
+```bash
+# Mínimo (modo nuvem para os 4 serviços)
+pip install labdados
+
+# Para modo local — adicione apenas os serviços que vai usar
+pip install labdados[ocr]               # PyMuPDF + Tesseract
+pip install labdados[transcricao]       # faster-whisper
+pip install labdados[estruturacao]      # cliente OpenAI-compat (Ollama, Azure, OpenAI)
+pip install labdados[viabilidade]       # juscraper + jinja2
+
+# Tudo
+pip install labdados[all]
+```
+
+## "Hello, world"
+
+```{.python}
+import labdados
+
+labdados.ocr(
+    arquivos="meus_pdfs/",
+    api_key="sk_lab_...",
+    saida="resultados/",
+)
+```
+
+Em 5 minutos, os PDFs viram `.zip` em `resultados/` (modo nuvem). Sem API
+key ainda? Adicione `local=True` (precisa do extra `[ocr]` instalado).
+
+## Como pedir uma API key
+
+A API key é gerada no fluxo de **consultoria** do portal:
+<https://escritorio.labdados.fgv.br/consultoria/api-key>. Você descreve o
+uso, a equipe revisa e te envia a chave por e-mail (uma única vez — guarde
+com cuidado).
+
+## Próximos passos
+
+- [Primeiros passos](getting-started.qmd) — instalação, autenticação, primeira chamada.
+- [Modo local](modo-local.qmd) — quando usar e o que cada extra precisa.
+- [Exemplos práticos](exemplos/ocr.qmd) — receitas para cada serviço, prontas pra colar.
+- [Referência da API](api/index.qmd) — todos os parâmetros de cada função.

@@ -1,0 +1,92 @@
+project:
+  type: website
+  output-dir: _site
+
+website:
+  title: "labdados — SDK"
+  description: "SDK Python para os serviços do escritório de apoio do LabDados / FGV Direito SP."
+  site-url: https://labdados.github.io/labdados-sdk
+  repo-url: https://github.com/labdados/labdados-sdk
+  repo-actions: [edit, issue]
+  navbar:
+    background: primary
+    left:
+      - href: index.qmd
+        text: Início
+      - href: getting-started.qmd
+        text: Primeiros passos
+      - text: Exemplos
+        menu:
+          - href: exemplos/ocr.qmd
+            text: OCR
+          - href: exemplos/transcricao.qmd
+            text: Transcrição
+          - href: exemplos/estruturacao.qmd
+            text: Estruturação
+          - href: exemplos/analise_viabilidade.qmd
+            text: Análise de viabilidade
+      - text: Referência da API
+        href: api/index.qmd
+  sidebar:
+    style: "docked"
+    contents:
+      - section: "Comece aqui"
+        contents:
+          - index.qmd
+          - getting-started.qmd
+          - api-key.qmd
+          - modo-local.qmd
+      - section: "Exemplos"
+        contents:
+          - exemplos/ocr.qmd
+          - exemplos/transcricao.qmd
+          - exemplos/estruturacao.qmd
+          - exemplos/analise_viabilidade.qmd
+      - section: "Referência"
+        contents:
+          - api/index.qmd
+
+format:
+  html:
+    theme:
+      light: cosmo
+      dark: darkly
+    toc: true
+    toc-depth: 3
+    code-copy: true
+    code-overflow: wrap
+    fig-cap-location: bottom
+    lang: pt-BR
+
+quartodoc:
+  package: labdados
+  dir: api
+  title: "Referência da API"
+  style: pkgdown
+  parser: numpy
+  sidebar: api/_sidebar.yml
+  render_interlinks: true
+  sections:
+    - title: "Funções de alto nível"
+      desc: |
+        Cada função cobre um serviço do escritório. Todas aceitam pasta,
+        lista ou arquivo único em `arquivos` e oferecem `local=True` para
+        rodar no próprio computador.
+      contents:
+        - ocr
+        - transcricao
+        - estruturacao
+        - analise_viabilidade
+    - title: "Cliente"
+      desc: |
+        Use o `Client` quando for fazer várias chamadas com a mesma chave
+        ou precisar configurar timeout / progress / base_url custom.
+      contents:
+        - Client
+    - title: "Exceções"
+      contents:
+        - LabdadosError
+        - ApiKeyError
+        - UploadError
+        - ProcessingFailed
+        - LocalDependencyMissing

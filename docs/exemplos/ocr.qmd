@@ -1,0 +1,124 @@
+---
+title: "OCR de PDFs"
+---
+
+[`labdados.ocr`](../api/ocr.qmd) extrai texto de PDFs nativos ou escaneados.
+Aceita um PDF único, uma lista de PDFs ou uma pasta inteira (varre subpastas).
+
+## Receita 1 — Pasta inteira na nuvem
+
+Caso típico: você baixou 200 acórdãos de um tribunal e quer todos virarem
+arquivos de texto.
+
+```{.python}
+import os
+import labdados
+
+labdados.ocr(
+    arquivos="acordaos_tjsp/",
+    api_key=os.environ["LABDADOS_API_KEY"],
+    saida="acordaos_txt/",
+    formato="md",                 # txt ou md
+    idiomas="por",                # apenas português
+)
+# acordaos_txt/ocr_<id>.zip
+```
+
+Extraia o `.zip` no mesmo lugar:
+
+```{.bash}
+cd acordaos_txt && unzip ocr_*.zip
+```
+
+## Receita 2 — PDFs com layout complexo (PaddleOCR na nuvem)
+
+Quando o documento tem várias colunas, formulários ou tabelas, o Tesseract
+costuma errar. PaddleOCR (GPU) sai melhor:
+
+```{.python}
+labdados.ocr(
+    arquivos="petipoes/",
+    api_key=os.environ["LABDADOS_API_KEY"],
+    saida="petipoes_txt/",
+    modelo="paddleocr",          # roda em GPU T4 no escritório
+    dpi=300,
+)
+```
+
+::: {.callout-note}
+PaddleOCR tem **cold start** de ~30s na primeira chamada após ociosidade
+(o container GPU precisa subir). Não se preocupe se o spinner ficar
+parado nesse intervalo.
+:::
+
+## Receita 3 — Local, sem API key
+
+Para 5–10 PDFs, dá pra rodar local sem custo nenhum:
+
+```{.bash}
+pip install labdados[ocr]
+# macOS:
+brew install tesseract tesseract-lang
+# Ubuntu:
+sudo apt-get install tesseract-ocr tesseract-ocr-por
+```
+
+```{.python}
+import labdados
+
+labdados.ocr(
+    arquivos=["sentenca1.pdf", "sentenca2.pdf"],
+    local=True,
+    idiomas="por+eng",
+    formato="md",
+    saida="resultados/",
+    deskew=True,                 # endireita scans tortos
+)
+# resultados/sentenca1.md, resultados/sentenca2.md
+```
+
+## Receita 4 — Reuso de cliente
+
+Quando o script encadeia várias chamadas:
+
+```{.python}
+import os
+import labdados
+
+cli = labdados.Client(api_key=os.environ["LABDADOS_API_KEY"])
+
+cli.ocr(arquivos="docs_pdf/", saida="textos/", formato="md")
+cli.estruturacao(
+    arquivos="textos/",          # textos extraídos pelo OCR acima
+    schema={"type": "object", "properties": {"valor_causa": {"type": "number"}}},
+    saida="estruturado/",
+)
+```
+
+## Quando algum PDF dá pau no OCR remoto
+
+O serviço processa todos os PDFs e zip o resultado, mesmo que alguns falhem.
+Se houver falhas parciais, o `error_message` da Request guarda o resumo.
+Para inspecionar:
+
+```{.python}
+import os, httpx, labdados
+
+cli = labdados.Client(api_key=os.environ["LABDADOS_API_KEY"])
+ultimas = cli._get("/api/v1/requests?limit=5")
+for req in ultimas:
+    if req.get("error_message"):
+        print(req["id"], "→", req["error_message"])
+```
+
+## Parâmetros principais
+
+Veja a [referência completa](../api/ocr.qmd) para todos os argumentos.
+
+| Parâmetro | Default | Quando mexer |
+|-----------|---------|--------------|
+| `modelo` | `"pymupdf-tesseract"` | `"paddleocr"` para layouts complexos |
+| `formato` | `"txt"` | `"md"` se quiser preservar listas/títulos |
+| `idiomas` | `"por+eng"` | Para outros idiomas, ver lista do Tesseract |
+| `dpi` | `200` | `300` para scans pequenos / `150` para PDFs grandes |
+| `deskew` | `False` | `True` para scans tortos |

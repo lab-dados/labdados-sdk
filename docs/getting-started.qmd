@@ -1,0 +1,93 @@
+---
+title: "Primeiros passos"
+---
+
+## 1. Instalar
+
+O pacote base só depende de [`httpx`](https://www.python-httpx.org/) e cobre
+o **modo nuvem** dos quatro serviços:
+
+```bash
+pip install labdados
+```
+
+Verifique:
+
+```{.python}
+import labdados
+print(labdados.__version__)
+```
+
+## 2. Pedir uma API key
+
+A API key vem do fluxo de consultoria do escritório. Vá em
+[escritorio.labdados.fgv.br/consultoria/api-key](https://escritorio.labdados.fgv.br/consultoria/api-key),
+preencha o formulário (descreva o uso pretendido) e aguarde a aprovação.
+A chave chega por e-mail em texto plano — **guarde com cuidado**, é a única
+vez que você vai vê-la.
+
+::: {.callout-tip}
+Para testar antes de pedir uma chave, use `local=True` em qualquer função.
+Ver [Modo local](modo-local.qmd).
+:::
+
+## 3. Confirmar que a chave funciona
+
+```{.python}
+import labdados
+
+client = labdados.Client(api_key="sk_lab_seu_token_aqui")
+print(client.test_connection())
+# {'email': 'voce@fgv.br', 'researcher_name': 'Fulano', ...}
+```
+
+Se aparecer `ApiKeyError`, a chave foi digitada errado, expirou ou foi
+revogada — peça uma nova pelo formulário de consultoria.
+
+## 4. Primeira chamada de verdade
+
+```{.python}
+import labdados
+
+# Coloque uns PDFs em ./pdfs/ antes de rodar
+labdados.ocr(
+    arquivos="pdfs/",
+    api_key="sk_lab_seu_token_aqui",
+    saida="resultados/",
+    formato="md",
+)
+# resultados/ocr_<id>.zip — extraia para ver os .md
+```
+
+A função:
+
+1. Resolve `arquivos` → lista de `.pdf` (varre subpastas se for diretório).
+2. Sobe cada PDF via SAS URL diretamente para o Azure Blob.
+3. Cria a Request via `POST /api/v1/requests` (já aprovada).
+4. Faz polling até `status=COMPLETED` (mostra spinner no stderr).
+5. Baixa o `.zip` resultante para `saida/`.
+
+## 5. Reaproveitar a chave entre chamadas
+
+Para vários serviços com a mesma chave, prefira o `Client`:
+
+```{.python}
+import labdados
+
+client = labdados.Client(api_key="sk_lab_seu_token_aqui")
+
+client.ocr(arquivos="pdfs/", saida="out_pdf/")
+client.transcricao(arquivos="audios/", saida="out_audio/", modelo="whisperx", diarizacao=True)
+client.estruturacao(
+    arquivos="textos.csv",
+    coluna_texto="ementa",
+    schema={"type": "object", "properties": {"resultado": {"type": "string"}}},
+    saida="out_json/",
+)
+```
+
+## 6. Próximos passos
+
+- [Receitas práticas por serviço](exemplos/ocr.qmd)
+- [Modo local — quando o computador é seu](modo-local.qmd)
+- [Referência completa da API](api/index.qmd)

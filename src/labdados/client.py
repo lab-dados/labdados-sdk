@@ -7,6 +7,7 @@ quanto diretamente quando o usuário prefere a API ``client.ocr(...)``.
 from __future__ import annotations
 
 import mimetypes
+import os
 import time
 from collections.abc import Iterable
 from pathlib import Path
@@ -22,7 +23,10 @@ from labdados.exceptions import (
     UploadError,
 )
 
-DEFAULT_BASE_URL = "https://escritorio.labdados.fgv.br"
+# URL pública padrão. Pode ser sobrescrita em runtime por ``base_url=`` no
+# ``Client`` ou pelo env ``LABDADOS_BASE_URL`` (útil em dev local com o
+# backend em ``http://localhost:8000``).
+PUBLIC_BASE_URL = "https://escritorio.labdados.fgv.br"
 DEFAULT_TIMEOUT = 60.0
 DEFAULT_POLL_INTERVAL = 5.0
 # Timeout total esperando o worker terminar. 4h cobre transcrição de áudios
@@ -36,10 +40,14 @@ class Client:
     Parameters
     ----------
     api_key
-        Chave gerada pelo escritório. Solicite em
+        Chave gerada pelo escritório. Quando ``None``, lê de
+        ``LABDADOS_API_KEY`` no ambiente. Solicite em
         ``https://escritorio.labdados.fgv.br/consultoria/api-key``.
     base_url
-        URL do backend. Default: produção do escritório.
+        URL do backend. Quando ``None``, lê de ``LABDADOS_BASE_URL`` no
+        ambiente; se o env var também não estiver setada, usa a URL
+        pública do escritório. Em dev local, passe
+        ``base_url="http://localhost:8000"``.
     timeout
         Timeout (em segundos) para cada request HTTP. Não confunda com o
         ``poll_timeout``, que é o tempo total esperando o resultado.
@@ -56,22 +64,34 @@ class Client:
     >>> import labdados
     >>> client = labdados.Client(api_key="sk_lab_xxx")
     >>> client.ocr(arquivos="pdfs/", saida="out/")
+
+    Em dev local (backend em ``localhost:8000``):
+
+    >>> import os
+    >>> os.environ["LABDADOS_BASE_URL"] = "http://localhost:8000"
+    >>> os.environ["LABDADOS_API_KEY"] = "sk_lab_xxx"
+    >>> labdados.ocr(arquivos="pdfs/")  # nem precisa do Client
     """
 
     def __init__(
         self,
         api_key: str | None = None,
         *,
-        base_url: str = DEFAULT_BASE_URL,
+        base_url: str | None = None,
         timeout: float = DEFAULT_TIMEOUT,
         poll_interval: float = DEFAULT_POLL_INTERVAL,
         poll_timeout: float = DEFAULT_POLL_TIMEOUT,
         progress: bool = True,
     ) -> None:
-        if api_key is not None and not api_key.strip():
+        # api_key: argumento > env > None (modo local não precisa)
+        resolved_key = api_key or os.environ.get("LABDADOS_API_KEY")
+        if resolved_key is not None and not resolved_key.strip():
             raise ApiKeyError("api_key não pode ser vazia")
-        self.api_key = api_key.strip() if api_key else None
-        self.base_url = base_url.rstrip("/")
+        # base_url: argumento > env > URL pública padrão
+        resolved_base = base_url or os.environ.get("LABDADOS_BASE_URL") or PUBLIC_BASE_URL
+
+        self.api_key = resolved_key.strip() if resolved_key else None
+        self.base_url = resolved_base.rstrip("/")
         self.timeout = timeout
         self.poll_interval = poll_interval
         self.poll_timeout = poll_timeout

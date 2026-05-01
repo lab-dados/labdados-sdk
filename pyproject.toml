@@ -83,8 +83,11 @@ dev = [
     "respx>=0.21",
 ]
 docs = [
-    "quartodoc>=0.7",
-    "griffe>=0.45",
+    # ``quartodoc<0.10`` passa kwargs (``allow_section_blank_line``) que o
+    # ``griffe>=1.0`` removeu — combinação quebra com ``TypeError`` em
+    # ``parse_numpy()``. ``quartodoc>=0.10`` já alinhado com ``griffe>=1``.
+    "quartodoc>=0.10",
+    "griffe>=1.0",
 ]
 
 [project.urls]

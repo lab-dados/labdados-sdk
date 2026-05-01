@@ -40,3 +40,9 @@ Thumbs.db
 *.api-key
 test_data/
 scratch/
+
+# Outputs locais e notebooks de scratch (não devem ir pro repo)
+data/
+resultados_labdados/
+resultados_*/
+test*.ipynb

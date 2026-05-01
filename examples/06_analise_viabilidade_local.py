@@ -15,8 +15,8 @@ def main() -> None:
         listagem="datajud",
         tribunais=["tjsp"],
         classes_cnj=["7"],
-        inicio="2020-01-01",
-        fim="2024-12-31",
+        ano_inicio=2020,
+        ano_fim=2024,
         local=True,
         saida="relatorios_local/",
     )

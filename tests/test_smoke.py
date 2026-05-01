@@ -146,7 +146,7 @@ def test_analise_viabilidade_signature():
     expected = {
         "descricao", "listagem", "tribunais", "saida", "api_key",
         "palavras_chave", "classes_cnj", "assuntos_cnj", "grau",
-        "inicio", "fim", "notas", "local", "client", "progress",
+        "ano_inicio", "ano_fim", "notas", "local", "client", "progress",
     }
     assert expected <= set(sig.parameters)
 

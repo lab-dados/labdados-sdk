@@ -1,6 +1,6 @@
 [project]
 name = "labdados"
-version = "0.1.0"
+version = "0.2.0"
 description = "SDK Python para os serviços do escritório de apoio do LabDados / FGV Direito SP — OCR, transcrição, estruturação com LLMs e análise de viabilidade. Roda em modo nuvem (com API key) ou local."
 readme = "README.md"
 license = { text = "MIT" }

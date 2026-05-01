@@ -15,8 +15,8 @@ def main() -> None:
         tribunais=["tjsp", "tjrj", "tjmg"],
         classes_cnj=["7"],            # Procedimento Comum Cível
         assuntos_cnj=["7780"],        # Saúde Suplementar
-        inicio="2020-01-01",
-        fim="2024-12-31",
+        ano_inicio=2020,
+        ano_fim=2024,
         api_key=os.environ["LABDADOS_API_KEY"],
         saida="relatorios/",
         notas="Pesquisa para a tese de doutorado em direito civil (FGV/SP).",

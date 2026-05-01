@@ -21,8 +21,8 @@ ana = labdados.analise_viabilidade(
     tribunais=["tjsp", "tjrj", "tjmg"],
     classes_cnj=["7"],                # Procedimento Comum Cível
     assuntos_cnj=["7780"],            # Saúde Suplementar (código SGT)
-    inicio="2020-01-01",
-    fim="2024-12-31",
+    ano_inicio=2020,
+    ano_fim=2024,
     api_key=os.environ["LABDADOS_API_KEY"],
     saida="relatorios/",
 )
@@ -81,8 +81,8 @@ ana = labdados.analise_viabilidade(
     listagem="datajud",
     tribunais=["tjsp"],
     classes_cnj=["7"],
-    inicio="2020-01-01",
-    fim="2024-12-31",
+    ano_inicio=2020,
+    ano_fim=2024,
     local=True,
     saida="relatorios/",
 )
@@ -115,5 +115,5 @@ pra colar num relatório.
 | `listagem` | `"datajud"` para estudos prospectivos com classe/assunto; `"jurisprudencia"` ou `"sentencas"` para busca textual |
 | `palavras_chave` | Apenas para `jurisprudencia` / `sentencas` |
 | `classes_cnj` / `assuntos_cnj` | Apenas para `datajud` |
-| `inicio` / `fim` | Recorte temporal — opcional |
+| `ano_inicio` / `ano_fim` | Recorte temporal por ano (inteiro), inclusivo — opcional |
 | `notas` | Texto livre que vai pro PDF — útil pra documentar a decisão |

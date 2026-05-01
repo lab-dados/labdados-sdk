@@ -38,7 +38,14 @@ dependencies = [
     # Único requisito do modo nuvem — usado para chamar a API REST e baixar
     # arquivos do Azure Blob via SAS URL.
     "httpx>=0.27,<1.0",
+    "pymupdf>=1.27.2.3",
 ]
+
+# Notas:
+# - O modo nuvem é coberto apenas pelas deps acima (httpx + pymupdf).
+# - Cada extra abaixo cobre um serviço no modo `local=True`. Os extras
+#   tiram do `labdados-core` apenas o que for genuinamente compartilhado
+#   com o backend (hoje, só viabilidade).
 
 [project.optional-dependencies]
 # OCR local: PyMuPDF abre o PDF e renderiza páginas; pytesseract chama o
@@ -60,12 +67,11 @@ transcricao = [
 estruturacao = [
     "openai>=1.40",
 ]
-# Análise de viabilidade local: juscraper consulta tribunais (Datajud +
-# bancos de jurisprudência); jinja2 + (Quarto via OS) renderiza relatório.
+# Análise de viabilidade local: usa ``labdados-core[juscraper]`` — o
+# pacote núcleo que o backend também consome (mesmas regras de veredito,
+# mesmo template do relatório, sem chance de divergir).
 viabilidade = [
-    "juscraper>=0.4",
-    "jinja2>=3.1",
-    "httpx>=0.27,<1.0",
+    "labdados-core[juscraper] @ git+https://github.com/jtrecenti/labdados-core@main",
 ]
 all = [
     "labdados[ocr,transcricao,estruturacao,viabilidade]",
@@ -90,6 +96,11 @@ Issues = "https://github.com/labdados/labdados-sdk/issues"
 [build-system]
 requires = ["hatchling"]
 build-backend = "hatchling.build"
+
+[tool.hatch.metadata]
+# Necessário para permitir o "git+https://..." em optional-dependencies
+# (labdados-core enquanto não está no PyPI).
+allow-direct-references = true
 
 [tool.hatch.build.targets.wheel]
 packages = ["src/labdados"]

@@ -14,6 +14,8 @@ instalado no OS e do extra ``pip install labdados[ocr]``.
 
 from __future__ import annotations
 
+import os
+import shutil
 from pathlib import Path
 from typing import Any, Literal
 
@@ -95,6 +97,11 @@ def ocr(
     saida_dir = ensure_output_dir(saida)
 
     if local:
+        if modelo != "pymupdf-tesseract":
+            raise ValueError(
+                "No modo local, OCR suporta apenas modelo='pymupdf-tesseract'. "
+                "Use local=False para modelo='paddleocr'."
+            )
         return _ocr_local(
             pdfs,
             saida_dir=saida_dir,
@@ -189,6 +196,8 @@ def _ocr_local(
 
     from labdados._progress import clear_status, render_status
 
+    _configure_tesseract_command(pytesseract)
+
     for i, pdf in enumerate(pdfs, start=1):
         if progress:
             render_status(f"OCR local {i}/{len(pdfs)}: {pdf.name}", frame=i)
@@ -205,7 +214,10 @@ def _ocr_local(
                 img = Image.open(BytesIO(pix.tobytes("png")))
                 if deskew:
                     img = _deskew(img)
-                ocr_text = pytesseract.image_to_string(img, lang=idiomas)
+                try:
+                    ocr_text = pytesseract.image_to_string(img, lang=idiomas)
+                except pytesseract.TesseractNotFoundError as exc:
+                    raise LocalDependencyMissing(_tesseract_not_found_message()) from exc
                 text_chunks.append(ocr_text)
         ext = "md" if formato == "md" else "txt"
         out_path = saida_dir / f"{pdf.stem}.{ext}"
@@ -225,3 +237,52 @@ def _deskew(img: Any) -> Any:
         return ImageOps.exif_transpose(img)
     except Exception:  # noqa: BLE001
         return img
+
+
+def _configure_tesseract_command(pytesseract: Any) -> None:
+    configured_cmd = os.environ.get("TESSERACT_CMD")
+    if configured_cmd:
+        pytesseract.pytesseract.tesseract_cmd = configured_cmd
+        return
+
+    discovered_cmd = shutil.which("tesseract")
+    if discovered_cmd:
+        pytesseract.pytesseract.tesseract_cmd = discovered_cmd
+        return
+
+    for candidate in _tesseract_candidates():
+        if candidate.exists():
+            pytesseract.pytesseract.tesseract_cmd = str(candidate)
+            return
+
+
+def _tesseract_candidates() -> list[Path]:
+    candidates: list[Path] = []
+
+    if os.name == "nt":
+        for env_name in ("ProgramFiles", "ProgramFiles(x86)", "LocalAppData"):
+            root = os.environ.get(env_name)
+            if not root:
+                continue
+            candidates.append(Path(root) / "Tesseract-OCR" / "tesseract.exe")
+            candidates.append(Path(root) / "Programs" / "Tesseract-OCR" / "tesseract.exe")
+
+    return candidates
+
+
+def _tesseract_not_found_message() -> str:
+    message = (
+        "OCR local requer o binario do Tesseract instalado e acessivel. "
+        "Instale com `pip install labdados[ocr]` e garanta que o executavel "
+        "`tesseract` esteja no PATH."
+    )
+
+    if os.name == "nt":
+        message += (
+            " No Windows, o SDK tenta localizar automaticamente em "
+            "`C:\\Program Files\\Tesseract-OCR\\tesseract.exe`. "
+            "Se estiver em outro lugar, defina a variavel de ambiente "
+            "`TESSERACT_CMD` com o caminho completo do executavel."
+        )
+
+    return message

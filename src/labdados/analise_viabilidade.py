@@ -1,6 +1,5 @@
 """
-Análise de viabilidade — estima volume de processos e gera relatório PDF/MD
-antes de uma raspagem em tribunais brasileiros.
+Análise de viabilidade — estima volume de processos antes de uma raspagem.
 
 Modo nuvem
 ----------
@@ -9,23 +8,17 @@ no backend e baixa o relatório (PDF + MD) quando pronto.
 
 Modo local
 ----------
-Roda a mesma análise (via ``juscraper`` para tribunais e Datajud do CNJ),
-gera o JSON com contagens e — se Quarto + Typst estão instalados no
-sistema — renderiza o relatório local. Caso contrário, retorna apenas o
-JSON com os resultados.
+Roda a **mesma** análise via ``labdados-core`` — núcleo compartilhado com
+o backend, garantindo que a regra de veredito e o template do relatório
+fiquem byte-equivalentes ao que o escritório gera. Sem o Quarto+Typst
+no sistema, retorna apenas o markdown.
 """
 
 from __future__ import annotations
 
 import json
-import shutil
-import subprocess
-import tempfile
-from datetime import UTC, datetime
 from pathlib import Path
 from typing import Any, Literal
-
-import httpx
 
 from labdados._io import PathLike, ensure_output_dir
 from labdados.client import Client
@@ -83,8 +76,8 @@ def analise_viabilidade(
     notas
         Texto livre para o relatório.
     local
-        Se ``True``, roda direto via ``juscraper`` (extra
-        ``pip install labdados[viabilidade]``).
+        Se ``True``, roda direto via ``labdados-core``
+        (``pip install labdados[viabilidade]``).
     client
         Cliente reaproveitado (modo nuvem).
     progress
@@ -105,7 +98,7 @@ def analise_viabilidade(
     ...     descricao="Ações de saúde suplementar contra planos de saúde — 2020 a 2025",
     ...     listagem="datajud",
     ...     tribunais=["tjsp", "tjrj", "tjmg"],
-    ...     classes_cnj=["7"],  # Procedimento Comum Cível
+    ...     classes_cnj=["7"],
     ...     assuntos_cnj=["7780"],
     ...     inicio="2020-01-01",
     ...     fim="2025-12-31",
@@ -188,15 +181,10 @@ def _viab_local(
     notas: str,
     progress: bool,
 ) -> dict[str, Any]:
-    """Reproduz o pipeline do backend localmente (Datajud direto + juscraper).
-
-    Por design, segue o mesmo formato de saída para que o relatório local
-    seja indistinguível do gerado pelo escritório.
-    """
+    """Roda a análise via ``labdados-core``. Mesmo template, mesmas regras
+    de veredito que o escritório usa em produção."""
     try:
-        # juscraper só é necessário para listagem != datajud, mas validamos
-        # o extra cedo pra dar mensagem coerente.
-        import juscraper as _juscraper  # noqa: F401
+        from labdados_core.viabilidade import analyze_form, render_report
     except ImportError as exc:
         raise LocalDependencyMissing(
             "Análise local requer:\n    pip install labdados[viabilidade]"
@@ -206,15 +194,41 @@ def _viab_local(
 
     if progress:
         render_status("consultando tribunais...", frame=0)
-    results = _analyze_form(form)
+    results = analyze_form(form)
     if progress:
         clear_status()
 
-    pdf_path, md_path = _try_render_local_report(form, results, saida_dir, notas)
-    # Sempre escreve o JSON pra que o usuário tenha algo navegável
-    # mesmo quando o Quarto não está disponível.
+    request_meta = {
+        "researcher_name": "(modo local)",
+        "institution": "(modo local)",
+        "email": "",
+        "created_at": None,
+    }
+
+    pdf_path: Path | None = None
+    md_path: Path | None = None
+    rendered = render_report(
+        request_id="local",
+        form=form,
+        results=results,
+        request_meta=request_meta,
+    )
+    if rendered is not None:
+        pdf_bytes, md_bytes = rendered
+        if md_bytes:
+            md_path = saida_dir / "viabilidade_relatorio.md"
+            md_path.write_bytes(md_bytes)
+        if pdf_bytes:
+            pdf_path = saida_dir / "viabilidade_relatorio.pdf"
+            pdf_path.write_bytes(pdf_bytes)
+
+    # Sempre escreve o JSON pra o usuário ter algo navegável mesmo sem PDF.
     (saida_dir / "viabilidade_resultados.json").write_text(
-        json.dumps({"form": form, "results": results, "notas": notas}, ensure_ascii=False, indent=2),
+        json.dumps(
+            {"form": form, "results": results, "notas": notas},
+            ensure_ascii=False,
+            indent=2,
+        ),
         encoding="utf-8",
     )
     return {
@@ -223,266 +237,3 @@ def _viab_local(
         "report_pdf": pdf_path,
         "report_md": md_path,
     }
-
-
-# ---------------------------------------------------------------------------
-# Análise — port direto do backend (mesmas regras de viabilidade)
-# ---------------------------------------------------------------------------
-
-_DATAJUD_BASE = "https://api-publica.datajud.cnj.jus.br"
-_DATAJUD_KEY = "cDZHYzlZa0JadVREZDJCendQbXY6SkJlTzNjLV9TRENyQk1RdnFKZGRQdw=="
-
-
-def _datajud_alias(tribunal_code: str) -> str:
-    return f"api_publica_{tribunal_code.lower()}"
-
-
-def _extract_digits(s: str) -> str:
-    return "".join(c for c in str(s) if c.isdigit())
-
-
-def _datajud_count(
-    code: str,
-    inicio: str | None,
-    fim: str | None,
-    classes: list[str] | None,
-    assuntos: list[str] | None,
-) -> dict[str, Any]:
-    must: list[dict[str, Any]] = []
-    if inicio or fim:
-        rng: dict[str, str] = {}
-        if inicio:
-            rng["gte"] = f"{inicio}T00:00:00.000Z"
-        if fim:
-            rng["lte"] = f"{fim}T23:59:59.999Z"
-        must.append({"range": {"dataAjuizamento": rng}})
-    if classes:
-        codes = [_extract_digits(c) for c in classes if _extract_digits(c)]
-        if codes:
-            must.append({"terms": {"classe.codigo": codes}})
-    if assuntos:
-        codes = [_extract_digits(a) for a in assuntos if _extract_digits(a)]
-        if codes:
-            must.append({"terms": {"assuntos.codigo": codes}})
-    payload = {
-        "size": 0,
-        "track_total_hits": True,
-        "query": {"bool": {"must": must}} if must else {"match_all": {}},
-    }
-    url = f"{_DATAJUD_BASE}/{_datajud_alias(code)}/_search"
-    try:
-        resp = httpx.post(
-            url,
-            json=payload,
-            headers={"Authorization": f"APIKey {_DATAJUD_KEY}"},
-            timeout=30.0,
-        )
-        resp.raise_for_status()
-        data = resp.json()
-        total = data.get("hits", {}).get("total", {})
-        return {
-            "code": code,
-            "count": int(total.get("value") or 0),
-            "relation": total.get("relation", "eq"),
-        }
-    except Exception as exc:  # noqa: BLE001
-        return {"code": code, "error": str(exc)[:200]}
-
-
-def _juscraper_count(method: str, code: str, pesquisa: str) -> dict[str, Any]:
-    try:
-        import juscraper
-
-        scraper = juscraper.scraper(code.lower())
-        scraper.set_verbose(0)
-        df = getattr(scraper, method)(pesquisa=pesquisa, paginas=1)
-        return {"code": code, "count": int(len(df)), "relation": "first_page"}
-    except Exception as exc:  # noqa: BLE001
-        return {"code": code, "error": f"{type(exc).__name__}: {str(exc)[:200]}"}
-
-
-def _split_lines(raw: Any) -> list[str]:
-    if not raw:
-        return []
-    return [line.strip() for line in str(raw).replace(",", "\n").splitlines() if line.strip()]
-
-
-def _analyze_form(form: dict[str, Any]) -> dict[str, Any]:
-    listagem = str(form.get("listagem") or "")
-    tribunais = [str(t).lower() for t in (form.get("tribunais_selecionados") or [])]
-    inicio = (form.get("recorte_inicio") or None) or None
-    fim = (form.get("recorte_fim") or None) or None
-
-    results: list[dict[str, Any]] = []
-    errors: list[dict[str, str]] = []
-
-    if listagem == "datajud":
-        classes = _split_lines(form.get("filtro_classes_cnj"))
-        assuntos = _split_lines(form.get("filtro_assuntos_cnj"))
-        for code in tribunais:
-            r = _datajud_count(code, inicio, fim, classes, assuntos)
-            if "error" in r:
-                errors.append({"tribunal": code, "error": r["error"]})
-            results.append(r)
-    elif listagem in ("jurisprudencia", "sentencas"):
-        method = "cjsg" if listagem == "jurisprudencia" else "cjpg"
-        pesquisa = str(form.get("filtro_palavras_chave") or "").strip()
-        if not pesquisa:
-            errors.append(
-                {"tribunal": "(geral)", "error": "Filtro de palavras-chave vazio."}
-            )
-        else:
-            for code in tribunais:
-                r = _juscraper_count(method, code, pesquisa)
-                if "error" in r:
-                    errors.append({"tribunal": code, "error": r["error"]})
-                results.append(r)
-    else:
-        errors.append({"tribunal": "(geral)", "error": f"listagem desconhecida: {listagem}"})
-
-    total_known = sum(r.get("count", 0) for r in results if isinstance(r.get("count"), int))
-    has_unbounded = any(r.get("relation") in ("gte", "first_page") for r in results)
-
-    highlights: list[str] = []
-    if errors:
-        highlights.append(f"{len(errors)} erro(s) durante a coleta — ver lista no relatório.")
-    if listagem == "datajud":
-        if total_known > 50_000:
-            highlights.append(
-                f"Volume estimado em {total_known:,} processos — recomenda-se fatiar a coleta."
-            )
-        elif total_known > 0:
-            highlights.append(f"Volume estimado em {total_known:,} processos — gerenciável.")
-    elif results:
-        highlights.append(
-            "Cada tribunal listou ao menos a 1ª página — contagem total não disponível na busca pública."
-        )
-
-    if not results:
-        verdict = "unviable"
-    elif errors and len(errors) >= len(results):
-        verdict = "unviable"
-    elif (listagem == "datajud" and total_known > 50_000) or errors:
-        verdict = "caveats"
-    else:
-        verdict = "viable"
-
-    return {
-        "listagem": listagem,
-        "tribunais": results,
-        "total_aproximado": total_known,
-        "has_unbounded": has_unbounded,
-        "errors": errors,
-        "verdict": verdict,
-        "highlights": highlights,
-    }
-
-
-# ---------------------------------------------------------------------------
-# Relatório local (Quarto opcional)
-# ---------------------------------------------------------------------------
-
-_LOCAL_TEMPLATE = """---
-title: "Análise de viabilidade — {{descricao}}"
-format:
-  typst:
-    papersize: a4
-    margin:
-      x: 2cm
-      y: 2cm
----
-
-**Gerado em:** {{generated_at}}
-
-## Resumo
-
-- **Listagem:** {{listagem}}
-- **Tribunais consultados:** {{tribunais_str}}
-- **Total aproximado:** {{total}}
-- **Veredito:** {{verdict}}
-
-{% if highlights %}
-### Pontos de atenção
-
-{% for h in highlights %}
-- {{h}}
-{% endfor %}
-{% endif %}
-
-## Resultados por tribunal
-
-| Tribunal | Contagem | Observação |
-|----------|---------:|------------|
-{% for r in results %}
-| {{r.code}} | {{r.get('count', '?')}} | {{r.get('relation', '')}}{% if r.get('error') %} — erro: {{r.error}}{% endif %} |
-{% endfor %}
-
-{% if errors %}
-## Erros
-
-{% for e in errors %}
-- **{{e.tribunal}}:** {{e.error}}
-{% endfor %}
-{% endif %}
-
-{% if notas %}
-## Notas do solicitante
-
-{{notas}}
-{% endif %}
-"""
-
-
-def _try_render_local_report(
-    form: dict[str, Any],
-    results: dict[str, Any],
-    saida_dir: Path,
-    notas: str,
-) -> tuple[Path | None, Path | None]:
-    """Tenta renderizar o relatório local com Quarto. Se Quarto não está
-    instalado, escreve só o ``.md`` (Jinja já gera markdown válido)."""
-    try:
-        from jinja2 import Template
-    except ImportError:
-        return None, None
-
-    rendered = Template(_LOCAL_TEMPLATE).render(
-        descricao=form.get("descricao_pesquisa", ""),
-        generated_at=datetime.now(tz=UTC).isoformat(timespec="seconds"),
-        listagem=results.get("listagem", ""),
-        tribunais_str=", ".join(r.get("code", "?") for r in results.get("tribunais") or []),
-        total=results.get("total_aproximado", 0),
-        verdict=results.get("verdict", "?"),
-        highlights=results.get("highlights") or [],
-        results=results.get("tribunais") or [],
-        errors=results.get("errors") or [],
-        notas=notas or "",
-    )
-
-    md_path = saida_dir / "viabilidade_relatorio.md"
-    md_path.write_text(rendered, encoding="utf-8")
-
-    if not shutil.which("quarto"):
-        return None, md_path
-
-    pdf_path: Path | None = None
-    with tempfile.TemporaryDirectory() as tmp:
-        tmp_dir = Path(tmp)
-        report_qmd = tmp_dir / "report.qmd"
-        report_qmd.write_text(rendered, encoding="utf-8")
-        try:
-            subprocess.run(
-                ["quarto", "render", str(report_qmd), "--to", "typst"],
-                check=True,
-                cwd=str(tmp_dir),
-                capture_output=True,
-                timeout=120,
-            )
-            generated_pdf = tmp_dir / "report.pdf"
-            if generated_pdf.exists():
-                pdf_path = saida_dir / "viabilidade_relatorio.pdf"
-                pdf_path.write_bytes(generated_pdf.read_bytes())
-        except (subprocess.CalledProcessError, subprocess.TimeoutExpired):
-            pdf_path = None
-
-    return pdf_path, md_path

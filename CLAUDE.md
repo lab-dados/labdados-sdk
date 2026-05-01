@@ -4,6 +4,29 @@ Guia para agentes de IA (Claude Code) e mantenedores que vão modificar este
 pacote. Este é o SDK Python oficial dos serviços do **escritório de apoio do
 LabDados** (FGV Direito SP).
 
+## Arquitetura geral (3 repos)
+
+```
+labdados-core/                       núcleo Python
+   │  └─ viabilidade/               regras + render do relatório
+   │  └─ templates/                 Jinja .qmd embutido no wheel
+   │
+   ├──→ escritorio-servicos/        backend FastAPI + workers
+   │     viability_runner.py        thin wrapper (estado em DB + blob)
+   │
+   └──→ labdados-sdk/               este repo — cliente nuvem + facade local
+         analise_viabilidade.py     thin wrapper (modo nuvem chama API,
+                                    modo local importa labdados_core)
+```
+
+A regra: **sem dep circular**. Backend e SDK são folhas; ambos puxam
+`labdados-core`. Lógica que precisa ficar idêntica nos dois → vai pro core.
+Lógica específica de um → fica nele.
+
+Ver também:
+- [`escritorio-servicos/CLAUDE.md`](https://github.com/jtrecenti/escritorio-servicos/blob/main/CLAUDE.md)
+- [`labdados-core/CLAUDE.md`](https://github.com/jtrecenti/labdados-core/blob/main/CLAUDE.md)
+
 ## O que este pacote é (e o que **não** é)
 
 - **É** o cliente Python oficial dos endpoints `/api/v1/*` do backend em
@@ -93,9 +116,9 @@ Cada serviço tem um caminho `_*_local(...)` independente do remoto. Manter:
   `localhost:11434/v1` (ele é gratuito, simples e cobre a maioria dos casos
   de notebook). Aceita Azure OpenAI / OpenAI / vLLM se o usuário trocar
   `base_url_local` e `api_key_local`.
-- **Viabilidade**: port direto do `backend/app/services/viability_runner.py`
-  (Datajud HTTP + juscraper). Esse arquivo é **espelho** desse módulo —
-  quando o backend mudar a regra de veredito, mudar aqui.
+- **Viabilidade**: usa `labdados_core.viabilidade` direto. **Não duplique**
+  a lógica de `analyze_form` aqui — se precisar mudar a regra, mude no
+  `labdados-core` e bumpe a versão.
 
 ## Documentação
 

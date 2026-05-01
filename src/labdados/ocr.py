@@ -55,7 +55,7 @@ def ocr(
         local, escreve um arquivo de texto por PDF processado.
     api_key
         Chave de API (apenas para modo nuvem). Peça uma em
-        https://escritorio.labdados.fgv.br/consultoria/api-key.
+        https://labdados-frontend.livelydesert-3e3e3dd8.brazilsouth.azurecontainerapps.io/consultoria/api-key.
     modelo
         ``"pymupdf-tesseract"`` (default — leve, CPU) ou ``"paddleocr"``
         (mais preciso em layouts complexos, GPU).

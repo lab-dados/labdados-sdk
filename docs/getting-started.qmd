@@ -21,7 +21,7 @@ print(labdados.__version__)
 ## 2. Pedir uma API key
 
 A API key vem do fluxo de consultoria do escritório. Vá em
-[escritorio.labdados.fgv.br/consultoria/api-key](https://escritorio.labdados.fgv.br/consultoria/api-key),
+[escritorio.labdados.fgv.br/consultoria/api-key](https://labdados-frontend.livelydesert-3e3e3dd8.brazilsouth.azurecontainerapps.io/consultoria/api-key),
 preencha o formulário (descreva o uso pretendido) e aguarde a aprovação.
 A chave chega por e-mail em texto plano — **guarde com cuidado**, é a única
 vez que você vai vê-la.

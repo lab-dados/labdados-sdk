@@ -76,7 +76,9 @@ def test_ocr_remote_full_flow(tmp_path: Path):
     pdf.write_bytes(b"%PDF-1.4 dummy bytes")
     saida = tmp_path / "out"
 
-    base = "https://escritorio.labdados.fgv.br"
+    from labdados.client import PUBLIC_BASE_URL
+
+    base = PUBLIC_BASE_URL
 
     respx.post(f"{base}/api/v1/uploads/sas").mock(
         return_value=httpx.Response(
@@ -151,7 +153,9 @@ def test_analise_viabilidade_signature():
 
 @respx.mock
 def test_test_connection_returns_metadata():
-    base = "https://escritorio.labdados.fgv.br"
+    from labdados.client import PUBLIC_BASE_URL
+
+    base = PUBLIC_BASE_URL
     respx.get(f"{base}/api/v1/whoami").mock(
         return_value=httpx.Response(
             200,

@@ -11,7 +11,7 @@ Quatro funções de alto nível, em português, que cobrem os serviços do escri
 
 Cada função roda em **dois modos**:
 
-1. **Nuvem** (default) — processa na infra do escritório. Exige uma API key (peça em <https://escritorio.labdados.fgv.br/consultoria/api-key>).
+1. **Nuvem** (default) — processa na infra do escritório. Exige uma API key (peça em <https://labdados-frontend.livelydesert-3e3e3dd8.brazilsouth.azurecontainerapps.io/consultoria/api-key>).
 2. **Local** (`local=True`) — processa no próprio computador. Cada serviço tem extras opcionais (`pip install labdados[ocr]`, `[transcricao]`, `[estruturacao]`, `[viabilidade]`).
 
 ## Instalação
@@ -57,7 +57,7 @@ client.transcricao(arquivos="audios/", saida="out_audio/", modelo="whisperx", di
 
 - [Documentação completa (quartodoc)](https://labdados.github.io/labdados-sdk)
 - [Exemplos práticos por serviço](docs/exemplos/)
-- [Como pedir uma API key](https://escritorio.labdados.fgv.br/consultoria/api-key)
+- [Como pedir uma API key](https://labdados-frontend.livelydesert-3e3e3dd8.brazilsouth.azurecontainerapps.io/consultoria/api-key)
 
 ## Como manter sincronizado com o backend
 

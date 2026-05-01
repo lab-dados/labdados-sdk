@@ -4,7 +4,7 @@ title: "Como obter e gerenciar sua API key"
 
 ## Pedir uma chave
 
-1. Acesse <https://escritorio.labdados.fgv.br/consultoria/api-key>.
+1. Acesse <https://labdados-frontend.livelydesert-3e3e3dd8.brazilsouth.azurecontainerapps.io/consultoria/api-key>.
 2. Preencha o formulário com:
    - **Como pretende usar**: descreva o projeto (orientador, prazo, dados).
    - **Serviços**: marque OCR, transcrição, estruturação ou análise de

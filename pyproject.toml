@@ -92,7 +92,7 @@ docs = [
 ]
 
 [project.urls]
-Homepage = "https://escritorio.labdados.fgv.br"
+Homepage = "https://labdados-frontend.livelydesert-3e3e3dd8.brazilsouth.azurecontainerapps.io"
 Documentation = "https://labdados.github.io/labdados-sdk"
 Repository = "https://github.com/labdados/labdados-sdk"
 Issues = "https://github.com/labdados/labdados-sdk/issues"

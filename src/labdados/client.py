@@ -23,10 +23,14 @@ from labdados.exceptions import (
     UploadError,
 )
 
-# URL pública padrão. Pode ser sobrescrita em runtime por ``base_url=`` no
-# ``Client`` ou pelo env ``LABDADOS_BASE_URL`` (útil em dev local com o
-# backend em ``http://localhost:8000``).
-PUBLIC_BASE_URL = "https://escritorio.labdados.fgv.br"
+# URL pública do backend em produção (Azure Container Apps, Brazil South).
+# O domínio ``escritorio.labdados.fgv.br`` ainda não foi configurado — quando
+# tiver, troca aqui. Pode ser sobrescrita em runtime por ``base_url=`` no
+# ``Client`` ou pelo env ``LABDADOS_BASE_URL`` (útil em dev local com
+# ``http://localhost:8000``).
+PUBLIC_BASE_URL = (
+    "https://labdados-api.livelydesert-3e3e3dd8.brazilsouth.azurecontainerapps.io"
+)
 DEFAULT_TIMEOUT = 60.0
 DEFAULT_POLL_INTERVAL = 5.0
 # Timeout total esperando o worker terminar. 4h cobre transcrição de áudios
@@ -42,7 +46,7 @@ class Client:
     api_key
         Chave gerada pelo escritório. Quando ``None``, lê de
         ``LABDADOS_API_KEY`` no ambiente. Solicite em
-        ``https://escritorio.labdados.fgv.br/consultoria/api-key``.
+        ``https://labdados-frontend.livelydesert-3e3e3dd8.brazilsouth.azurecontainerapps.io/consultoria/api-key``.
     base_url
         URL do backend. Quando ``None``, lê de ``LABDADOS_BASE_URL`` no
         ambiente; se o env var também não estiver setada, usa a URL
@@ -105,7 +109,7 @@ class Client:
         if not self.api_key:
             raise ApiKeyError(
                 "Operação no modo nuvem exige uma API key. Peça uma em "
-                "https://escritorio.labdados.fgv.br/consultoria/api-key — ou "
+                "https://labdados-frontend.livelydesert-3e3e3dd8.brazilsouth.azurecontainerapps.io/consultoria/api-key — ou "
                 "use o modo local com `local=True`."
             )
         return {

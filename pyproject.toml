@@ -1,6 +1,6 @@
 [project]
 name = "labdados"
-version = "0.5.0"
+version = "0.6.0"
 description = "SDK Python para os serviços do escritório de apoio do LabDados / FGV Direito SP — OCR, transcrição, estruturação com LLMs e análise de viabilidade. Roda em modo nuvem (com API key) ou local."
 readme = "README.md"
 license = { text = "MIT" }
@@ -47,13 +47,11 @@ dependencies = [
 #   com o backend (hoje, só viabilidade).
 
 [project.optional-dependencies]
-# OCR local: PyMuPDF abre o PDF e renderiza páginas; pytesseract chama o
-# binário do Tesseract (instalado pelo OS). Suficiente pra processar de
-# forma decente sem GPU.
+# OCR local: pipeline (pymupdf+tesseract, deskew, BW fallback, tesseract
+# discovery no Windows) vive em labdados-core[ocr-cpu]. O extra do core
+# ja traz pymupdf, pytesseract e Pillow — nao duplicar aqui.
 ocr = [
-    "pymupdf>=1.24",
-    "pytesseract>=0.3.10",
-    "Pillow>=10.0",
+    "labdados-core[ocr-cpu] @ git+https://github.com/lab-dados/labdados-core@main",
 ]
 # Transcrição local: faster-whisper roda em CPU ou GPU CUDA (se disponível).
 # WhisperX (com diarização) tem deps pesadas e fica fora do extra "leve" —

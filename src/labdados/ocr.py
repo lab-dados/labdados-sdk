@@ -1,5 +1,4 @@
-"""
-OCR de PDFs — extrai texto de PDFs nativos ou escaneados.
+"""OCR de PDFs — extrai texto de PDFs nativos ou escaneados.
 
 Modo nuvem (default)
 --------------------
@@ -8,16 +7,19 @@ PaddleOCR), espera concluir e baixa o resultado (.zip) na pasta ``saida``.
 
 Modo local (``local=True``)
 ---------------------------
-Roda PyMuPDF + pytesseract direto na máquina. Precisa do Tesseract
-instalado no OS e do extra ``pip install labdados[ocr]``.
+Roda PyMuPDF + pytesseract direto na máquina via
+``labdados_core.ocr`` — mesmo pipeline que o serviço no escritório
+usa, sem chance de divergir em deskew, fallback BW ou descoberta do
+binário do Tesseract.
+
+Precisa do extra ``pip install labdados[ocr]`` e do binário do
+Tesseract instalado no OS.
 """
 
 from __future__ import annotations
 
-import os
-import shutil
 from pathlib import Path
-from typing import Any, Literal
+from typing import Literal
 
 from labdados._io import PathLike, ensure_output_dir, resolve_inputs
 from labdados.client import Client
@@ -58,7 +60,8 @@ def ocr(
         em ``/consultoria/api-key``.
     modelo
         ``"pymupdf-tesseract"`` (default — leve, CPU) ou ``"paddleocr"``
-        (mais preciso em layouts complexos, GPU).
+        (mais preciso em layouts complexos, GPU). PaddleOCR só está
+        disponível no modo nuvem.
     formato
         Formato do texto extraído: ``"txt"`` (default) ou ``"md"``.
     idiomas
@@ -89,7 +92,7 @@ def ocr(
     >>> import labdados
     >>> labdados.ocr(arquivos="meus_pdfs/", api_key="sk_lab_...", saida="resultados/")
 
-    Modo local com PaddleOCR (off — só nuvem para Paddle):
+    Modo local:
 
     >>> labdados.ocr(arquivos=["a.pdf", "b.pdf"], local=True)
     """
@@ -145,7 +148,7 @@ def _ocr_remote(
 ) -> Path:
     cli = client or Client(api_key=api_key, progress=progress)
     files_meta = cli._upload_files("ocr", pdfs)
-    config: dict[str, Any] = {
+    config: dict = {
         "output_format": formato,
         "languages": idiomas,
         "dpi": dpi,
@@ -166,7 +169,7 @@ def _ocr_remote(
 
 
 # ---------------------------------------------------------------------------
-# Local
+# Local — delega a labdados_core.ocr
 # ---------------------------------------------------------------------------
 
 
@@ -181,108 +184,41 @@ def _ocr_local(
     progress: bool,
 ) -> Path:
     try:
-        import fitz  # PyMuPDF
-        import pytesseract
-        from PIL import Image
+        from labdados_core.ocr import (
+            EngineUnavailable,
+            TesseractNotFound,
+            extract,
+            join_pages,
+        )
     except ImportError as exc:
         raise LocalDependencyMissing(
             "OCR local requer extras opcionais. Instale com:\n"
-            "    pip install labdados[ocr]\n"
-            "Em seguida, instale o binário do Tesseract no seu sistema "
-            "(https://tesseract-ocr.github.io)."
+            "    pip install labdados[ocr]"
         ) from exc
 
-    from io import BytesIO
-
     from labdados._progress import clear_status, render_status
-
-    _configure_tesseract_command(pytesseract)
 
     for i, pdf in enumerate(pdfs, start=1):
         if progress:
             render_status(f"OCR local {i}/{len(pdfs)}: {pdf.name}", frame=i)
-        text_chunks: list[str] = []
-        with fitz.open(pdf) as doc:
-            for page in doc:
-                # Tenta texto nativo primeiro — se a página é PDF de texto,
-                # economiza o OCR.
-                native = page.get_text("text")
-                if native and native.strip():
-                    text_chunks.append(native)
-                    continue
-                pix = page.get_pixmap(dpi=dpi)
-                img = Image.open(BytesIO(pix.tobytes("png")))
-                if deskew:
-                    img = _deskew(img)
-                try:
-                    ocr_text = pytesseract.image_to_string(img, lang=idiomas)
-                except pytesseract.TesseractNotFoundError as exc:
-                    raise LocalDependencyMissing(_tesseract_not_found_message()) from exc
-                text_chunks.append(ocr_text)
+        try:
+            pages = extract(
+                pdf,
+                modelo="pymupdf-tesseract",
+                languages=idiomas,
+                dpi=dpi,
+                deskew=deskew,
+            )
+        except EngineUnavailable as exc:
+            raise LocalDependencyMissing(str(exc)) from exc
+        except TesseractNotFound as exc:
+            raise LocalDependencyMissing(str(exc)) from exc
+
+        text = join_pages(pages, output_format="md" if formato == "md" else "txt")
         ext = "md" if formato == "md" else "txt"
         out_path = saida_dir / f"{pdf.stem}.{ext}"
-        out_path.write_text("\n\n".join(text_chunks), encoding="utf-8")
+        out_path.write_text(text, encoding="utf-8")
+
     if progress:
         clear_status()
     return saida_dir
-
-
-def _deskew(img: Any) -> Any:
-    """Deskew leve baseado em PIL — não tão sofisticado quanto opencv,
-    mas evita uma dependência pesada. Se Pillow falhar, devolve a imagem
-    original."""
-    try:
-        from PIL import ImageOps
-
-        return ImageOps.exif_transpose(img)
-    except Exception:  # noqa: BLE001
-        return img
-
-
-def _configure_tesseract_command(pytesseract: Any) -> None:
-    configured_cmd = os.environ.get("TESSERACT_CMD")
-    if configured_cmd:
-        pytesseract.pytesseract.tesseract_cmd = configured_cmd
-        return
-
-    discovered_cmd = shutil.which("tesseract")
-    if discovered_cmd:
-        pytesseract.pytesseract.tesseract_cmd = discovered_cmd
-        return
-
-    for candidate in _tesseract_candidates():
-        if candidate.exists():
-            pytesseract.pytesseract.tesseract_cmd = str(candidate)
-            return
-
-
-def _tesseract_candidates() -> list[Path]:
-    candidates: list[Path] = []
-
-    if os.name == "nt":
-        for env_name in ("ProgramFiles", "ProgramFiles(x86)", "LocalAppData"):
-            root = os.environ.get(env_name)
-            if not root:
-                continue
-            candidates.append(Path(root) / "Tesseract-OCR" / "tesseract.exe")
-            candidates.append(Path(root) / "Programs" / "Tesseract-OCR" / "tesseract.exe")
-
-    return candidates
-
-
-def _tesseract_not_found_message() -> str:
-    message = (
-        "OCR local requer o binario do Tesseract instalado e acessivel. "
-        "Instale com `pip install labdados[ocr]` e garanta que o executavel "
-        "`tesseract` esteja no PATH."
-    )
-
-    if os.name == "nt":
-        message += (
-            " No Windows, o SDK tenta localizar automaticamente em "
-            "`C:\\Program Files\\Tesseract-OCR\\tesseract.exe`. "
-            "Se estiver em outro lugar, defina a variavel de ambiente "
-            "`TESSERACT_CMD` com o caminho completo do executavel."
-        )
-
-    return message

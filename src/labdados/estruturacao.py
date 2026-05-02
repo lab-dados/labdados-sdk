@@ -1,12 +1,4 @@
-"""
-Estruturação de textos com LLMs — extrai campos JSON conforme um schema.
-
-.. note::
-   **Em desenvolvimento.** Esta ferramenta está em fase inicial. Em
-   breve será integrada ao pacote
-   `bdcdo/dataframeit <https://github.com/bdcdo/dataframeit>`_, que
-   trará uma API mais madura para extração estruturada em escala. A
-   superfície atual pode mudar.
+"""Estruturação de textos com LLMs — extrai campos JSON conforme um schema.
 
 Modo nuvem
 ----------
@@ -18,7 +10,18 @@ Modo local
 ----------
 Cliente OpenAI-compatível: aceita OpenAI, Azure OpenAI, Ollama (default
 ``http://localhost:11434/v1``) ou qualquer servidor ``/v1/chat/completions``.
-O usuário traz a própria chave/URL.
+O usuário traz a própria chave/URL. Desde a v0.5.0 a chamada ao LLM e a
+montagem do prompt vivem em ``labdados_core.estruturacao`` — o mesmo
+código rodado pelo backend (``services/structuring``), garantindo que
+prompt e parsing não divirjam.
+
+.. note::
+   **Mudança de comportamento na v0.5.0**: o schema passa a ser injetado
+   na mensagem ``user`` (junto do texto), não mais na ``system``. Isso
+   alinha com o backend e funciona melhor com
+   ``response_format=json_schema``. Se o seu prompt depender da
+   formulação antiga, instrua o LLM via ``prompt_sistema`` ou abra uma
+   issue.
 """
 
 from __future__ import annotations
@@ -215,8 +218,19 @@ def _estr_local(
     modelo_local: str,
     progress: bool,
 ) -> Path:
+    """Roda extração local via labdados_core.estruturacao.
+
+    O cliente OpenAI, a montagem de prompt e a leitura de
+    ``.txt/.md/.docx/.csv/.xlsx`` vivem no core — mesma rotina que o
+    backend roda. Esta função só faz: ler bytes do disco, dividir em
+    documentos, chamar o pipeline e gravar o ``.json`` por arquivo.
+    """
     try:
-        from openai import OpenAI
+        from labdados_core.estruturacao import (
+            LlmConfig,
+            estruturar,
+            read_document,
+        )
     except ImportError as exc:
         raise LocalDependencyMissing(
             "Estruturação local requer:\n    pip install labdados[estruturacao]"
@@ -224,88 +238,33 @@ def _estr_local(
 
     from labdados._progress import clear_status, render_status
 
-    client = OpenAI(base_url=base_url, api_key=api_key_local)
-
-    schema_str = json.dumps(schema, ensure_ascii=False, indent=2)
-    base_system = (
-        prompt_sistema or "Você extrai informações estruturadas de documentos jurídicos."
-    )
-    system = (
-        f"{base_system}\n\n"
-        f"Responda EXCLUSIVAMENTE com JSON válido seguindo este schema:\n{schema_str}"
+    llm_config = LlmConfig(
+        provider="openai_compat",
+        model=modelo_local,
+        api_key=api_key_local,
+        base_url=base_url,
+        temperature=temperatura,
+        max_tokens=max_tokens,
     )
 
     for i, path in enumerate(docs, start=1):
         if progress:
             render_status(f"estruturando {i}/{len(docs)}: {path.name}", frame=i)
-        rows = _read_doc(path, coluna_texto)
-        results: list[dict[str, Any]] = []
-        for row_text in rows:
-            response = client.chat.completions.create(
-                model=modelo_local,
-                temperature=temperatura,
-                max_tokens=max_tokens,
-                response_format={"type": "json_object"},
-                messages=[
-                    {"role": "system", "content": system},
-                    {"role": "user", "content": row_text},
-                ],
-            )
-            content = response.choices[0].message.content or "{}"
-            try:
-                results.append(json.loads(content))
-            except json.JSONDecodeError:
-                results.append({"_raw": content, "_error": "invalid_json"})
+        documents = read_document(
+            path.read_bytes(), path.name, csv_text_column=coluna_texto
+        )
+        results = estruturar(
+            documents,
+            schema=schema,
+            system_prompt=prompt_sistema,
+            llm_config=llm_config,
+        )
         out_path = saida_dir / f"{path.stem}.json"
+        payload = results if len(results) > 1 else results[0]
         out_path.write_text(
-            json.dumps(results if len(results) > 1 else results[0], ensure_ascii=False, indent=2),
+            json.dumps(payload, ensure_ascii=False, indent=2),
             encoding="utf-8",
         )
     if progress:
         clear_status()
     return saida_dir
-
-
-def _read_doc(path: Path, coluna_texto: str) -> list[str]:
-    """Devolve uma lista de strings (uma por 'documento'). Para CSV/XLSX
-    cada linha é um documento; para .txt/.md/.docx, é uma única string."""
-    suf = path.suffix.lower()
-    if suf in (".txt", ".md"):
-        return [path.read_text(encoding="utf-8")]
-    if suf == ".docx":
-        try:
-            import docx  # python-docx
-        except ImportError as exc:
-            raise LocalDependencyMissing(
-                "Para ler .docx no modo local, instale: pip install python-docx"
-            ) from exc
-        d = docx.Document(str(path))
-        return ["\n".join(p.text for p in d.paragraphs)]
-    if suf == ".csv":
-        try:
-            import pandas as pd
-        except ImportError as exc:
-            raise LocalDependencyMissing(
-                "Para ler .csv/.xlsx no modo local, instale: pip install pandas"
-            ) from exc
-        df = pd.read_csv(path)
-        return _df_rows_as_text(df, coluna_texto)
-    if suf == ".xlsx":
-        try:
-            import pandas as pd
-        except ImportError as exc:
-            raise LocalDependencyMissing(
-                "Para ler .xlsx no modo local, instale: pip install pandas openpyxl"
-            ) from exc
-        df = pd.read_excel(path)
-        return _df_rows_as_text(df, coluna_texto)
-    raise ValueError(f"Extensão não suportada localmente: {suf}")
-
-
-def _df_rows_as_text(df: Any, coluna_texto: str) -> list[str]:
-    if coluna_texto and coluna_texto in df.columns:
-        return [str(v) for v in df[coluna_texto].fillna("").tolist()]
-    return [
-        " · ".join(f"{c}: {v}" for c, v in row.items() if str(v).strip())
-        for row in df.fillna("").to_dict(orient="records")
-    ]

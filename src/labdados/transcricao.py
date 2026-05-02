@@ -10,7 +10,9 @@ Modo local
 ----------
 Usa ``faster-whisper`` em CPU ou GPU. Diarização local não é suportada por
 default — o extra ``[transcricao]`` traz só ``faster-whisper`` para manter
-o footprint pequeno.
+o footprint pequeno. A formatação dos arquivos SRT/VTT/TXT vem do
+``labdados_core.transcricao`` — mesmas funções rodadas pelo serviço no
+escritório, sem chance de divergir.
 """
 
 from __future__ import annotations
@@ -203,6 +205,7 @@ def _trans_local(
 ) -> Path:
     try:
         from faster_whisper import WhisperModel
+        from labdados_core.transcricao import Segment, format_segments
     except ImportError as exc:
         raise LocalDependencyMissing(
             "Transcrição local requer:\n    pip install labdados[transcricao]"
@@ -226,40 +229,23 @@ def _trans_local(
             language=None if idioma == "auto" else idioma,
             beam_size=beam_size,
         )
+        # Materializa o iterador do faster-whisper em uma lista de Segment
+        # padronizado (mesmo formato que o serviço usa) para passar pro
+        # formatter compartilhado.
+        segs: list[Segment] = [
+            {"start": seg.start, "end": seg.end, "text": seg.text}
+            for seg in segments
+        ]
         out_path = saida_dir / f"{audio.stem}.{formato}"
-        with out_path.open("w", encoding="utf-8") as f:
-            if formato == "txt":
-                for seg in segments:
-                    if timestamps:
-                        ts = _fmt_timestamp(seg.start)
-                        f.write(f"[{ts}] {seg.text.strip()}\n")
-                    else:
-                        f.write(seg.text.strip() + "\n")
-            elif formato in ("srt", "vtt"):
-                if formato == "vtt":
-                    f.write("WEBVTT\n\n")
-                for n, seg in enumerate(segments, start=1):
-                    f.write(f"{n}\n")
-                    f.write(
-                        f"{_fmt_srt(seg.start, vtt=formato == 'vtt')} --> "
-                        f"{_fmt_srt(seg.end, vtt=formato == 'vtt')}\n"
-                    )
-                    f.write(seg.text.strip() + "\n\n")
+        out_path.write_text(
+            format_segments(
+                segs,
+                output_format=formato,  # type: ignore[arg-type]
+                include_timestamps=timestamps,
+            ),
+            encoding="utf-8",
+        )
+
     if progress:
         clear_status()
     return saida_dir
-
-
-def _fmt_timestamp(secs: float) -> str:
-    h = int(secs // 3600)
-    m = int((secs % 3600) // 60)
-    s = int(secs % 60)
-    return f"{h:02d}:{m:02d}:{s:02d}"
-
-
-def _fmt_srt(secs: float, *, vtt: bool) -> str:
-    h = int(secs // 3600)
-    m = int((secs % 3600) // 60)
-    s = secs % 60
-    sep = "." if vtt else ","
-    return f"{h:02d}:{m:02d}:{int(s):02d}{sep}{int((s - int(s)) * 1000):03d}"

@@ -721,7 +721,7 @@ dependencies = [
 
 [[package]]
 name = "labdados"
-version = "0.6.0"
+version = "0.7.0"
 source = { editable = "." }
 dependencies = [
     { name = "httpx" },
@@ -751,6 +751,7 @@ ocr = [
 ]
 transcricao = [
     { name = "faster-whisper" },
+    { name = "labdados-core" },
 ]
 viabilidade = [
     { name = "labdados-core" },
@@ -762,6 +763,7 @@ requires-dist = [
     { name = "griffe", marker = "extra == 'docs'", specifier = ">=1.5,<2.0" },
     { name = "httpx", specifier = ">=0.27,<1.0" },
     { name = "labdados", extras = ["ocr", "transcricao", "estruturacao", "viabilidade"], marker = "extra == 'all'" },
+    { name = "labdados-core", marker = "extra == 'transcricao'", git = "https://github.com/lab-dados/labdados-core?rev=main" },
     { name = "labdados-core", marker = "extra == 'viabilidade'", git = "https://github.com/lab-dados/labdados-core?rev=main" },
     { name = "labdados-core", extras = ["estruturacao"], marker = "extra == 'estruturacao'", git = "https://github.com/lab-dados/labdados-core?rev=main" },
     { name = "labdados-core", extras = ["ocr-cpu"], marker = "extra == 'ocr'", git = "https://github.com/lab-dados/labdados-core?rev=main" },
@@ -776,8 +778,8 @@ provides-extras = ["ocr", "transcricao", "estruturacao", "viabilidade", "all", "
 
 [[package]]
 name = "labdados-core"
-version = "0.8.0"
-source = { git = "https://github.com/lab-dados/labdados-core?rev=main#e8661552cc0f30290c2634a520ee815f5b93d74c" }
+version = "0.9.0"
+source = { git = "https://github.com/lab-dados/labdados-core?rev=main#e16cda675923c64c983bfc91407d5da150eb8701" }
 dependencies = [
     { name = "jinja2" },
     { name = "juscraper" },

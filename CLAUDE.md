@@ -7,16 +7,26 @@ LabDados** (FGV Direito SP).
 ## Arquitetura geral (3 repos)
 
 ```
-labdados-core/                       núcleo Python
-   │  └─ viabilidade/               regras + render do relatório
-   │  └─ templates/                 Jinja .qmd embutido no wheel
-   │
-   ├──→ escritorio-servicos/        backend FastAPI + workers
-   │     viability_runner.py        thin wrapper (estado em DB + blob)
-   │
-   └──→ labdados-sdk/               este repo — cliente nuvem + facade local
-         analise_viabilidade.py     thin wrapper (modo nuvem chama API,
-                                    modo local importa labdados_core)
+labdados-core/                       núcleo Python compartilhado
+   ├─ contracts/                    Pydantic models (FileMetadata, ProcessRequest, ...)
+   ├─ viabilidade/                  regras + render do relatório
+   ├─ estruturacao/                 pipeline LLM (DataFrameIt) + readers + prompts
+   ├─ ocr/                          extract + engines (pymupdf-tesseract, paddleocr)
+   ├─ transcricao/                  formatters TXT/SRT/VTT + Segment TypedDict
+   └─ templates/                    Jinja .qmd embutido no wheel (viabilidade)
+        │
+        ├──→ escritorio-servicos/   backend FastAPI + services/<x>/
+        │     services/structuring  → labdados_core.estruturacao
+        │     services/ocr          → labdados_core.ocr
+        │     services/transcription→ labdados_core.transcricao (formatters)
+        │     services/viability    → labdados_core.viabilidade
+        │     backend (orquestrador) → labdados_core.contracts (só)
+        │
+        └──→ labdados-sdk/          este repo — cliente nuvem + facade local
+              ocr.py                modo local → labdados_core.ocr
+              transcricao.py        modo local → labdados_core.transcricao
+              estruturacao.py       modo local → labdados_core.estruturacao
+              analise_viabilidade.py local-only → labdados_core.viabilidade
 ```
 
 A regra: **sem dep circular**. Backend e SDK são folhas; ambos puxam

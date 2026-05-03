@@ -103,9 +103,9 @@ labdados.estruturacao(
     arquivos="textos/",
     schema={...},
     local=True,
-    base_url_local="https://meu-resource.openai.azure.com/openai/deployments/gpt-4o-mini",
+    base_url_local="https://meu-resource.openai.azure.com/openai/deployments/gpt-4.1-mini",
     api_key_local="<sua chave da Azure>",
-    modelo_local="gpt-4o-mini",
+    modelo_local="gpt-4.1-mini",
 )
 ```
 

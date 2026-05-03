@@ -7,6 +7,26 @@ versionamento seguindo [SemVer](https://semver.org/lang/pt-BR/).
 
 ## [Unreleased]
 
+## [0.7.2] - 2026-05-03
+
+### Mudado
+- Notebooks Colab refatorados para que **cada célula de código seja
+  auto-suficiente** (`import labdados` + auth via `getpass` no início de
+  toda célula que executa) — alguém pode rodar só a célula do modo nuvem
+  ou só a do modo local sem precisar rodar tudo na ordem.
+- Trocou exemplos de `gpt-4o-mini` por `gpt-4.1-mini` em README, docs e
+  notebooks (4o-mini está obsoleto).
+- URL do portal de API key passou a apontar para a URL real do escritório
+  (`labdados-frontend.…brazilsouth.azurecontainerapps.io/consultoria/api-key`)
+  em vez do domínio `labdados.fgv.br` (ainda não configurado).
+
+### Removido
+- `examples/data/organograma.pdf` — fixture interna que não deveria ter
+  ido pro repo público. Notebook de OCR agora baixa um PDF de teste
+  público (africau.edu) via `wget`. **Atenção**: o arquivo permanece no
+  histórico do git de v0.7.1 — purgar com `git filter-repo` se quiser
+  remoção completa.
+
 ## [0.7.1] - 2026-05-03
 
 ### Mudado

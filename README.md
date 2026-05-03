@@ -180,7 +180,7 @@ labdados.estruturacao(
     local=True,
     base_url_local="https://api.openai.com/v1",
     api_key_local="sk-...",
-    modelo_local="gpt-4o-mini",
+    modelo_local="gpt-4.1-mini",
 )
 
 # Viabilidade (sempre local, sem nuvem por enquanto)

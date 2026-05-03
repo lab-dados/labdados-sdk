@@ -2,6 +2,10 @@
 title: "Transcrição de áudio"
 ---
 
+[![Open In Colab](https://colab.research.google.com/assets/colab-badge.svg)](https://colab.research.google.com/github/lab-dados/labdados-sdk/blob/main/examples/notebooks/transcricao.ipynb)
+
+> Versão notebook (rodável no Colab): [`examples/notebooks/transcricao.ipynb`](https://github.com/lab-dados/labdados-sdk/blob/main/examples/notebooks/transcricao.ipynb).
+
 [`labdados.transcricao`](../api/transcricao.qmd) usa Whisper (Large V3 Turbo
 ou WhisperX) para transformar áudio em texto. Suporta `.mp3`, `.wav`,
 `.m4a`, `.ogg`, `.flac`, `.wma`.

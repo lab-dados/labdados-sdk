@@ -2,6 +2,10 @@
 title: "OCR de PDFs"
 ---
 
+[![Open In Colab](https://colab.research.google.com/assets/colab-badge.svg)](https://colab.research.google.com/github/lab-dados/labdados-sdk/blob/main/examples/notebooks/ocr.ipynb)
+
+> Versão notebook (rodável no Colab): [`examples/notebooks/ocr.ipynb`](https://github.com/lab-dados/labdados-sdk/blob/main/examples/notebooks/ocr.ipynb).
+
 [`labdados.ocr`](../api/ocr.qmd) extrai texto de PDFs nativos ou escaneados.
 Aceita um PDF único, uma lista de PDFs ou uma pasta inteira (varre subpastas).
 

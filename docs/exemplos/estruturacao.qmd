@@ -2,6 +2,10 @@
 title: "Estruturação com LLMs"
 ---
 
+[![Open In Colab](https://colab.research.google.com/assets/colab-badge.svg)](https://colab.research.google.com/github/lab-dados/labdados-sdk/blob/main/examples/notebooks/estruturacao.ipynb)
+
+> Versão notebook (rodável no Colab): [`examples/notebooks/estruturacao.ipynb`](https://github.com/lab-dados/labdados-sdk/blob/main/examples/notebooks/estruturacao.ipynb).
+
 [`labdados.estruturacao`](../api/estruturacao.qmd) usa um LLM para extrair
 campos estruturados (JSON) de cada documento. Útil para transformar
 acórdãos, sentenças, ou ementas em colunas de uma planilha.

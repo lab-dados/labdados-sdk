@@ -205,12 +205,12 @@ Use quando você quer **rodar todo o escritório no seu computador** — útil p
 - Debugar o fluxo end-to-end (upload → fila → service → download).
 - Demos sem depender de internet ou da cota da nuvem.
 
-A receita: subir o repositório [`escritorio-servicos`](https://github.com/labdados/escritorio-servicos) via `docker compose`, criar uma API key local, e apontar o SDK para `http://localhost:18000` (ou 8000 se a porta padrão estiver livre).
+A receita: subir o repositório [`escritorio-servicos`](https://github.com/lab-dados/escritorio-servicos) via `docker compose`, criar uma API key local, e apontar o SDK para `http://localhost:18000` (ou 8000 se a porta padrão estiver livre).
 
 ### 1. Subir o stack
 
 ```bash
-git clone https://github.com/labdados/escritorio-servicos
+git clone https://github.com/lab-dados/escritorio-servicos
 cd escritorio-servicos
 cp .env.example .env       # defaults funcionam
 docker compose --profile services up -d
@@ -292,14 +292,14 @@ O override troca os builds de OCR e Transcrição para os Dockerfiles GPU (Paddl
 
 ## Documentação completa
 
-- [API reference (quartodoc)](https://labdados.github.io/labdados-sdk)
+- [API reference (quartodoc)](https://lab-dados.github.io/labdados-sdk)
 - [Exemplos práticos por serviço](docs/exemplos/)
 - [Como pedir uma API key](https://labdados-frontend.livelydesert-3e3e3dd8.brazilsouth.azurecontainerapps.io/consultoria/api-key)
 
 ## Como manter sincronizado com o backend
 
 Este pacote é **espelho da API v1** do escritório
-(`https://github.com/labdados/escritorio-servicos`). A maior parte da
+(`https://github.com/lab-dados/escritorio-servicos`). A maior parte da
 lógica compartilhada vive no [`labdados-core`](https://github.com/lab-dados/labdados-core),
 que é dependência transitiva (puxado pelos extras). O guia para agentes
 de IA e mantenedores está no [`CLAUDE.md`](./CLAUDE.md).

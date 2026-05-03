@@ -1,6 +1,6 @@
 [project]
 name = "labdados"
-version = "0.7.0"
+version = "0.7.1"
 description = "SDK Python para os serviços do escritório de apoio do LabDados / FGV Direito SP — OCR, transcrição, estruturação com LLMs e análise de viabilidade. Roda em modo nuvem (com API key) ou local."
 readme = "README.md"
 license = { text = "MIT" }
@@ -51,7 +51,7 @@ dependencies = [
 # discovery no Windows) vive em labdados-core[ocr-cpu]. O extra do core
 # ja traz pymupdf, pytesseract e Pillow — nao duplicar aqui.
 ocr = [
-    "labdados-core[ocr-cpu] @ git+https://github.com/lab-dados/labdados-core@main",
+    "labdados-core[ocr-cpu]>=0.9,<1.0",
 ]
 # Transcrição local: faster-whisper roda em CPU ou GPU CUDA (se disponível).
 # WhisperX (com diarização) tem deps pesadas e fica fora do extra "leve" —
@@ -60,19 +60,19 @@ ocr = [
 # que o serviço no escritório produz.
 transcricao = [
     "faster-whisper>=1.0",
-    "labdados-core @ git+https://github.com/lab-dados/labdados-core@main",
+    "labdados-core>=0.9,<1.0",
 ]
 # Estruturação local: pipeline + cliente OpenAI-compatível vivem em
 # labdados-core (compartilhado com o backend, sem chance de divergir
 # em prompt ou parsing). O extra do core já traz openai e openpyxl.
 estruturacao = [
-    "labdados-core[estruturacao] @ git+https://github.com/lab-dados/labdados-core@main",
+    "labdados-core[estruturacao]>=0.9,<1.0",
 ]
-# Análise de viabilidade local: usa ``labdados-core[juscraper]`` — o
-# pacote núcleo que o backend também consome (mesmas regras de veredito,
-# mesmo template do relatório, sem chance de divergir).
+# Análise de viabilidade local: usa ``labdados-core`` — o pacote núcleo
+# que o backend também consome (mesmas regras de veredito, mesmo template
+# do relatório, sem chance de divergir).
 viabilidade = [
-    "labdados-core @ git+https://github.com/lab-dados/labdados-core@main",
+    "labdados-core>=0.9,<1.0",
 ]
 all = [
     "labdados[ocr,transcricao,estruturacao,viabilidade]",
@@ -94,18 +94,14 @@ docs = [
 
 [project.urls]
 Homepage = "https://labdados-frontend.livelydesert-3e3e3dd8.brazilsouth.azurecontainerapps.io"
-Documentation = "https://labdados.github.io/labdados-sdk"
-Repository = "https://github.com/labdados/labdados-sdk"
-Issues = "https://github.com/labdados/labdados-sdk/issues"
+Documentation = "https://lab-dados.github.io/labdados-sdk"
+Repository = "https://github.com/lab-dados/labdados-sdk"
+Issues = "https://github.com/lab-dados/labdados-sdk/issues"
+Changelog = "https://github.com/lab-dados/labdados-sdk/blob/main/CHANGELOG.md"
 
 [build-system]
 requires = ["hatchling"]
 build-backend = "hatchling.build"
-
-[tool.hatch.metadata]
-# Necessário para permitir o "git+https://..." em optional-dependencies
-# (labdados-core enquanto não está no PyPI).
-allow-direct-references = true
 
 [tool.hatch.build.targets.wheel]
 packages = ["src/labdados"]

@@ -5,8 +5,8 @@ project:
 website:
   title: "labdados — SDK"
   description: "SDK Python para os serviços do escritório de apoio do LabDados / FGV Direito SP."
-  site-url: https://labdados.github.io/labdados-sdk
-  repo-url: https://github.com/labdados/labdados-sdk
+  site-url: https://lab-dados.github.io/labdados-sdk
+  repo-url: https://github.com/lab-dados/labdados-sdk
   repo-actions: [edit, issue]
   navbar:
     background: primary

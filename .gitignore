@@ -42,7 +42,11 @@ test_data/
 scratch/
 
 # Outputs locais e notebooks de scratch (não devem ir pro repo)
-data/
+/data/
 resultados_labdados/
 resultados_*/
 test*.ipynb
+# Outputs de exemplos rodados localmente
+docs/exemplos/relatorios/
+# Mas mantemos fixtures pequenos commitados em examples/data/
+!examples/data/

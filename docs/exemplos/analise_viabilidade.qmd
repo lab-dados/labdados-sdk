@@ -2,6 +2,10 @@
 title: "Análise de viabilidade"
 ---
 
+[![Open In Colab](https://colab.research.google.com/assets/colab-badge.svg)](https://colab.research.google.com/github/lab-dados/labdados-sdk/blob/main/examples/notebooks/analise_viabilidade.ipynb)
+
+> Versão notebook (rodável no Colab): [`examples/notebooks/analise_viabilidade.ipynb`](https://github.com/lab-dados/labdados-sdk/blob/main/examples/notebooks/analise_viabilidade.ipynb).
+
 [`labdados.analise_viabilidade`](../api/analise_viabilidade.qmd) é o passo
 **antes** de fazer uma raspagem grande. Ela:
 
@@ -20,7 +24,7 @@ de API key. Requer `pip install labdados[viabilidade]` e — opcionalmente
 
 ## Receita 1 — Datajud com filtro por assunto
 
-```{.python}
+```{python}
 import labdados
 
 ana = labdados.analise_viabilidade(

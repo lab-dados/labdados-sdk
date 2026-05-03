@@ -7,6 +7,32 @@ versionamento seguindo [SemVer](https://semver.org/lang/pt-BR/).
 
 ## [Unreleased]
 
+## [0.7.1] - 2026-05-03
+
+### Mudado
+- **Primeira release no PyPI.** Trocou os 4 `labdados-core @ git+...`
+  em `[project.optional-dependencies]` por `labdados-core[…]>=0.9,<1.0`
+  (labdados-core 0.9.1 publicado hoje no PyPI).
+- Removeu `[tool.hatch.metadata] allow-direct-references = true`.
+
+### Adicionado
+- `examples/notebooks/{ocr,transcricao,estruturacao,analise_viabilidade}.ipynb` —
+  versões em notebook dos exemplos da documentação, com badge "Open in Colab"
+  no topo. Cada um é auto-suficiente: instala o pacote, autentica via
+  `getpass`, baixa/gera dados de amostra e roda.
+- Badges "Open in Colab" no topo de cada `docs/exemplos/*.qmd`, apontando
+  para o notebook correspondente no GitHub.
+- `examples/data/organograma.pdf` — fixture pequeno usado pelo notebook
+  de OCR.
+- `RELEASING.md` com procedimento de release via Trusted Publisher.
+- `.github/workflows/release.yml` — publica em PyPI via OIDC quando uma
+  tag `v*` é empurrada.
+
+### Corrigido
+- URLs do `pyproject.toml`, `_quarto.yml` e `README.md` que apontavam para
+  `github.com/labdados/...` (org não existente) — agora usam
+  `lab-dados` (org real, com hífen).
+
 ## [0.7.0] - 2026-05-02
 
 ### Mudado

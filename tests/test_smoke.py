@@ -18,10 +18,11 @@ import labdados
 
 
 def test_top_level_api_exposed():
-    """Confere que as 4 funções e o Client estão disponíveis no nível raiz."""
+    """Confere que as funções de alto nível e o Client estão disponíveis no nível raiz."""
     assert callable(labdados.ocr)
     assert callable(labdados.transcricao)
     assert callable(labdados.estruturacao)
+    assert callable(labdados.anonimizacao)
     assert callable(labdados.analise_viabilidade)
     assert isinstance(labdados.Client(api_key="sk_lab_x"), labdados.Client)
     assert isinstance(labdados.__version__, str)
@@ -136,6 +137,26 @@ def test_estruturacao_schema_passthrough():
 
     # Apenas garantimos que a função existe e os tipos casam — fluxo nuvem
     # é exercitado em test_ocr_remote_full_flow.
+
+
+def test_anonimizacao_signature():
+    """Smoke: a assinatura aceita os argumentos documentados."""
+    import inspect
+
+    sig = inspect.signature(labdados.anonimizacao)
+    expected = {
+        "arquivos", "estrategia", "saida", "api_key", "modelo",
+        "coluna_texto", "local", "use_gpu_local", "client", "progress",
+    }
+    assert expected <= set(sig.parameters)
+
+
+def test_anonimizacao_estrategia_default():
+    """Default deve ser 'categoria' — padrão mais legível."""
+    import inspect
+
+    sig = inspect.signature(labdados.anonimizacao)
+    assert sig.parameters["estrategia"].default == "categoria"
 
 
 def test_analise_viabilidade_signature():

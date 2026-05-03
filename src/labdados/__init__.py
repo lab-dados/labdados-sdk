@@ -29,6 +29,7 @@ prefira o `Client`:
 
 from labdados._version import __version__
 from labdados.analise_viabilidade import analise_viabilidade
+from labdados.anonimizacao import anonimizacao
 from labdados.client import Client
 from labdados.estruturacao import estruturacao
 from labdados.exceptions import (
@@ -48,6 +49,7 @@ __all__ = [
     "ocr",
     "transcricao",
     "estruturacao",
+    "anonimizacao",
     "analise_viabilidade",
     # Exceções
     "LabdadosError",

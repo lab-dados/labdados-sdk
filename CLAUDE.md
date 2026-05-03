@@ -13,19 +13,22 @@ labdados-core/                       núcleo Python compartilhado
    ├─ estruturacao/                 pipeline LLM (DataFrameIt) + readers + prompts
    ├─ ocr/                          extract + engines (pymupdf-tesseract, paddleocr)
    ├─ transcricao/                  formatters TXT/SRT/VTT + Segment TypedDict
+   ├─ anonimizacao/                 detector PII (openai/privacy-filter) + estrategias
    └─ templates/                    Jinja .qmd embutido no wheel (viabilidade)
         │
         ├──→ escritorio-servicos/   backend FastAPI + services/<x>/
-        │     services/structuring  → labdados_core.estruturacao
-        │     services/ocr          → labdados_core.ocr
-        │     services/transcription→ labdados_core.transcricao (formatters)
-        │     services/viability    → labdados_core.viabilidade
+        │     services/structuring   → labdados_core.estruturacao
+        │     services/ocr           → labdados_core.ocr
+        │     services/transcription → labdados_core.transcricao (formatters)
+        │     services/anonimizacao  → labdados_core.anonimizacao
+        │     services/viability     → labdados_core.viabilidade
         │     backend (orquestrador) → labdados_core.contracts (só)
         │
         └──→ labdados-sdk/          este repo — cliente nuvem + facade local
               ocr.py                modo local → labdados_core.ocr
               transcricao.py        modo local → labdados_core.transcricao
               estruturacao.py       modo local → labdados_core.estruturacao
+              anonimizacao.py       modo local → labdados_core.anonimizacao
               analise_viabilidade.py local-only → labdados_core.viabilidade
 ```
 
@@ -53,7 +56,7 @@ Ver também:
 
 ```
 labdados-sdk/
-├── pyproject.toml                     # extras: ocr, transcricao, estruturacao, viabilidade
+├── pyproject.toml                     # extras: ocr, transcricao, estruturacao, anonimizacao, viabilidade
 ├── src/labdados/
 │   ├── __init__.py                    # re-exports + docstring do pacote
 │   ├── _version.py
@@ -64,6 +67,7 @@ labdados-sdk/
 │   ├── ocr.py
 │   ├── transcricao.py
 │   ├── estruturacao.py
+│   ├── anonimizacao.py
 │   └── analise_viabilidade.py
 ├── tests/test_smoke.py                # imports + fluxo nuvem mockado via respx
 ├── docs/                              # quartodoc → site estático

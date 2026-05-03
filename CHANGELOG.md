@@ -22,10 +22,9 @@ versionamento seguindo [SemVer](https://semver.org/lang/pt-BR/).
 
 ### Removido
 - `examples/data/organograma.pdf` — fixture interna que não deveria ter
-  ido pro repo público. Notebook de OCR agora baixa um PDF de teste
-  público (africau.edu) via `wget`. **Atenção**: o arquivo permanece no
-  histórico do git de v0.7.1 — purgar com `git filter-repo` se quiser
-  remoção completa.
+  ido pro repo público. Notebook de OCR agora baixa um paper público
+  hospedado pelo Mozilla pdf.js (TraceMonkey, ~14 páginas) via `wget`.
+  Histórico purgado com `git filter-repo` (junto com `data/audio…m4a`).
 
 ## [0.7.1] - 2026-05-03
 

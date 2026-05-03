@@ -24,7 +24,7 @@ de API key. Requer `pip install labdados[viabilidade]` e — opcionalmente
 
 ## Receita 1 — Datajud com filtro por assunto
 
-```{python}
+```{.python}
 import labdados
 
 ana = labdados.analise_viabilidade(

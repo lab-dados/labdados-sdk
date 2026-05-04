@@ -2,7 +2,7 @@
 labdados — SDK Python para os serviços do escritório de apoio do
 LabDados (FGV Direito SP).
 
-Quatro funções de alto nível, cada uma cobre um serviço do escritório e
+Cinco funções de alto nível, cada uma cobre um serviço do escritório e
 funciona em dois modos:
 
 - **Nuvem** (default): processa via API do escritório, exige `api_key`.

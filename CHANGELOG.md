@@ -7,6 +7,31 @@ versionamento seguindo [SemVer](https://semver.org/lang/pt-BR/).
 
 ## [Unreleased]
 
+## [0.8.0] - 2026-05-04
+
+### Adicionado
+- Função `labdados.anonimizacao(...)` — detecção e mascaramento de PII
+  em texto. Modo nuvem roteia para o serviço novo do escritório
+  (`/api/v1/requests` com `service_id="anonimizacao"`); modo local
+  delega ao `labdados_core.anonimizacao` (HF Transformers).
+  Aceita `.txt`, `.md`, `.docx`, `.csv` e `.xlsx`.
+- Dois modelos disponíveis em modo nuvem (e idem no local, com o HF
+  identifier mapeado automaticamente):
+  - `"privacy-filter"` (default) — multilíngue, 8 categorias PII
+    (`openai/privacy-filter`).
+  - `"lenerbr"` — PT-BR jurídico, 6 categorias incluindo
+    `LEGISLACAO`/`JURISPRUDENCIA`
+    (`pierreguillou/ner-bert-base-cased-pt-lenerbr`).
+- Estratégias de mascaramento: `"categoria"` (default — `[PESSOA]`,
+  `[EMAIL]`...), `"asteriscos"` (preserva tamanho) e `"pseudonimo"`
+  (`PESSOA_1`, `PESSOA_2`... consistente por documento).
+- Novo extra `pip install labdados[anonimizacao]` — puxa
+  `labdados-core[anonimizacao-cpu]>=0.11,<1.0`.
+
+### Mudado
+- Pin do `labdados-core` no extra de anonimização exige `>=0.11`
+  (versão que adiciona suporte ao LeNER-Br).
+
 ## [0.7.2] - 2026-05-03
 
 ### Mudado

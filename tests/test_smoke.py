@@ -18,13 +18,84 @@ import labdados
 
 
 def test_top_level_api_exposed():
-    """Confere que as 4 funções e o Client estão disponíveis no nível raiz."""
+    """Confere que as 5 funções e o Client estão disponíveis no nível raiz."""
     assert callable(labdados.ocr)
     assert callable(labdados.transcricao)
     assert callable(labdados.estruturacao)
+    assert callable(labdados.anonimizacao)
     assert callable(labdados.analise_viabilidade)
     assert isinstance(labdados.Client(api_key="sk_lab_x"), labdados.Client)
     assert isinstance(labdados.__version__, str)
+
+
+def test_anonimizacao_signature():
+    """Smoke: a assinatura aceita os argumentos documentados (modelos +
+    estratégias)."""
+    import inspect
+
+    sig = inspect.signature(labdados.anonimizacao)
+    expected = {
+        "arquivos", "saida", "api_key", "modelo", "estrategia",
+        "coluna_texto", "local", "use_gpu", "client", "progress",
+    }
+    assert expected <= set(sig.parameters)
+
+
+@respx.mock
+def test_anonimizacao_remote_full_flow(tmp_path: Path):
+    """Mocka o fluxo nuvem da anonimização: SAS → upload → request → poll → download."""
+    txt = tmp_path / "doc.txt"
+    txt.write_text("Meu nome é João Silva.", encoding="utf-8")
+    saida = tmp_path / "out"
+
+    from labdados.client import PUBLIC_BASE_URL
+
+    base = PUBLIC_BASE_URL
+    respx.post(f"{base}/api/v1/uploads/sas").mock(
+        return_value=httpx.Response(
+            200,
+            json={
+                "upload_url": "https://sas.example/u?sig=x",
+                "blob_path": "anonimizacao/abc/doc.txt",
+                "expires_at": "2030-01-01T00:00:00Z",
+            },
+        )
+    )
+    respx.put(re.compile(r"^https://sas\.example/u")).mock(
+        return_value=httpx.Response(201)
+    )
+    respx.post(f"{base}/api/v1/requests").mock(
+        return_value=httpx.Response(
+            201,
+            json={"id": "req-anon-1", "status": "APPROVED"},
+        )
+    )
+    respx.get(f"{base}/api/v1/requests/req-anon-1").mock(
+        return_value=httpx.Response(
+            200,
+            json={
+                "id": "req-anon-1",
+                "status": "COMPLETED",
+                "result_url": "https://sas.example/r?sig=y",
+            },
+        )
+    )
+    respx.get(re.compile(r"^https://sas\.example/r")).mock(
+        return_value=httpx.Response(200, content=b"PK\x03\x04 zip-bytes-anon")
+    )
+
+    out_dir = labdados.anonimizacao(
+        arquivos=txt,
+        api_key="sk_lab_test",
+        modelo="lenerbr",
+        estrategia="pseudonimo",
+        saida=saida,
+        progress=False,
+    )
+    assert out_dir == saida
+    zips = list(saida.glob("anonimizacao_*.zip"))
+    assert len(zips) == 1
+    assert zips[0].read_bytes() == b"PK\x03\x04 zip-bytes-anon"
 
 
 def test_client_requires_api_key_for_cloud():

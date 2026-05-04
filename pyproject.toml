@@ -1,6 +1,6 @@
 [project]
 name = "labdados"
-version = "0.7.2"
+version = "0.8.0"
 description = "SDK Python para os serviços do escritório de apoio do LabDados / FGV Direito SP — OCR, transcrição, estruturação com LLMs e análise de viabilidade. Roda em modo nuvem (com API key) ou local."
 readme = "README.md"
 license = { text = "MIT" }
@@ -74,8 +74,17 @@ estruturacao = [
 viabilidade = [
     "labdados-core>=0.9,<1.0",
 ]
+# Anonimização local: pipeline (HF Transformers + estratégias de
+# mascaramento) vive em ``labdados-core[anonimizacao-cpu]``. Suporta
+# ``openai/privacy-filter`` (multilíngue, 8 categorias) e
+# ``pierreguillou/ner-bert-base-cased-pt-lenerbr`` (PT-BR jurídico, 6
+# categorias). Modo local roda em CPU; GPU CUDA é detectada se
+# disponível.
+anonimizacao = [
+    "labdados-core[anonimizacao-cpu]>=0.11,<1.0",
+]
 all = [
-    "labdados[ocr,transcricao,estruturacao,viabilidade]",
+    "labdados[ocr,transcricao,estruturacao,viabilidade,anonimizacao]",
 ]
 dev = [
     "pytest>=8",

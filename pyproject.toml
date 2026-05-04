@@ -68,19 +68,20 @@ transcricao = [
 estruturacao = [
     "labdados-core[estruturacao]>=0.9,<1.0",
 ]
-# Anonimização local: openai/privacy-filter via HF Transformers (CPU
-# default — para GPU local, instale torch CUDA separadamente). O modelo
-# tem ~3GB e é baixado no primeiro uso.
-# Requer labdados-core>=0.10.0 (módulo anonimizacao foi adicionado nessa
-# release).
-anonimizacao = [
-    "labdados-core[anonimizacao-cpu]>=0.10,<1.0",
-]
 # Análise de viabilidade local: usa ``labdados-core`` — o pacote núcleo
 # que o backend também consome (mesmas regras de veredito, mesmo template
 # do relatório, sem chance de divergir).
 viabilidade = [
     "labdados-core>=0.9,<1.0",
+]
+# Anonimização local: pipeline (HF Transformers + estratégias de
+# mascaramento) vive em ``labdados-core[anonimizacao-cpu]``. Suporta
+# ``openai/privacy-filter`` (multilíngue, 8 categorias) e
+# ``pierreguillou/ner-bert-base-cased-pt-lenerbr`` (PT-BR jurídico, 6
+# categorias). Modo local roda em CPU; GPU CUDA é detectada se
+# disponível.
+anonimizacao = [
+    "labdados-core[anonimizacao-cpu]>=0.11,<1.0",
 ]
 all = [
     "labdados[ocr,transcricao,estruturacao,anonimizacao,viabilidade]",

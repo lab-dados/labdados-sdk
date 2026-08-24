@@ -7,6 +7,26 @@ versionamento seguindo [SemVer](https://semver.org/lang/pt-BR/).
 
 ## [Unreleased]
 
+### Adicionado
+- Parâmetro `text=True` em `labdados.ocr(...)` e `labdados.transcricao(...)`:
+  devolve o texto como `str` em vez do caminho da pasta. Os arquivos
+  continuam sendo gravados em `saida`. Funciona nos dois modos: no local
+  lê os `.txt`/`.md`/`.srt` gerados, e na nuvem lê de dentro do `.zip`
+  baixado, sem exigir que quem chama saiba desses detalhes.
+- Helper interno `labdados._io.collect_text(paths)`, compartilhado pelos
+  dois serviços.
+- Modelo `tiny` da transcrição local passa a vir das releases deste
+  repositório, e não do Hugging Face. O HF barra download anônimo vindo de
+  IP de datacenter (Google Colab, runners de CI) pedindo um `HF_TOKEN`, o
+  que quebrava o modo `local=True` justamente para quem não quer instalar
+  nada. O modelo fica em cache em `~/.cache/labdados/modelos/`.
+- `modelo_local` aceita o caminho de uma pasta com o modelo já baixado.
+- Variável de ambiente `LABDADOS_CACHE` para escolher onde os modelos
+  espelhados ficam, e `LABDADOS_MODELOS_HF=1` para forçar o Hugging Face.
+- Módulo interno `labdados._modelos`, com download atômico (baixa e extrai
+  em caminho temporário, só então move) para que uma interrupção não deixe
+  cache pela metade.
+
 ## [0.8.0] - 2026-05-04
 
 ### Adicionado

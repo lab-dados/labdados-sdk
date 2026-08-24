@@ -20,7 +20,7 @@ from __future__ import annotations
 from pathlib import Path
 from typing import Any, Literal
 
-from labdados._io import PathLike, ensure_output_dir, resolve_inputs
+from labdados._io import PathLike, collect_text, ensure_output_dir, resolve_inputs
 from labdados.client import Client
 from labdados.exceptions import LocalDependencyMissing
 
@@ -43,9 +43,10 @@ def transcricao(
     beam_size: int = 5,
     local: bool = False,
     modelo_local: str = "large-v3",
+    text: bool = False,
     client: Client | None = None,
     progress: bool = True,
-) -> Path:
+) -> Path | str:
     """Transcreve áudio para texto/legenda.
 
     Parameters
@@ -82,6 +83,16 @@ def transcricao(
         Modelo do faster-whisper (``"tiny"``, ``"base"``, ``"small"``,
         ``"medium"``, ``"large-v3"``). Mais alto = mais preciso e mais
         lento; ``large-v3`` precisa de ~10GB de VRAM em GPU ou bastante RAM.
+        Aceita também o caminho de uma pasta com o modelo já baixado.
+        ``"tiny"`` vem das releases deste repositório, para não depender do
+        Hugging Face, que barra download anônimo vindo de IP de datacenter
+        (é o caso do Google Colab). Os demais vêm do Hugging Face. Para
+        forçar o Hugging Face em todos, defina ``LABDADOS_MODELOS_HF=1``.
+    text
+        Se ``True``, devolve o texto transcrito como ``str`` em vez do
+        caminho da pasta. Os arquivos continuam sendo gravados em
+        ``saida``. Com vários áudios, os textos vêm concatenados na ordem
+        de entrada, separados por linha em branco.
     client
         Cliente reaproveitado (modo nuvem).
     progress
@@ -89,8 +100,8 @@ def transcricao(
 
     Returns
     -------
-    Path
-        Pasta de saída.
+    Path | str
+        Pasta de saída, ou o texto transcrito quando ``text=True``.
 
     Examples
     --------
@@ -126,7 +137,7 @@ def transcricao(
     saida_dir = ensure_output_dir(saida)
 
     if local:
-        return _trans_local(
+        saida_dir, produzidos = _trans_local(
             audios,
             saida_dir=saida_dir,
             modelo=modelo_local,
@@ -136,21 +147,25 @@ def transcricao(
             beam_size=beam_size,
             progress=progress,
         )
+    else:
+        saida_dir, produzidos = _trans_remote(
+            audios,
+            saida_dir=saida_dir,
+            api_key=api_key,
+            client=client,
+            modelo=modelo,
+            idioma=idioma,
+            diarizacao=diarizacao,
+            num_falantes=num_falantes,
+            formato=formato,
+            timestamps=timestamps,
+            beam_size=beam_size,
+            progress=progress,
+        )
 
-    return _trans_remote(
-        audios,
-        saida_dir=saida_dir,
-        api_key=api_key,
-        client=client,
-        modelo=modelo,
-        idioma=idioma,
-        diarizacao=diarizacao,
-        num_falantes=num_falantes,
-        formato=formato,
-        timestamps=timestamps,
-        beam_size=beam_size,
-        progress=progress,
-    )
+    if text:
+        return collect_text(produzidos)
+    return saida_dir
 
 
 def _trans_remote(
@@ -167,7 +182,7 @@ def _trans_remote(
     timestamps: bool,
     beam_size: int,
     progress: bool,
-) -> Path:
+) -> tuple[Path, list[Path]]:
     cli = client or Client(api_key=api_key, progress=progress)
     files_meta = cli._upload_files("transcription", audios)
     config: dict[str, Any] = {
@@ -188,8 +203,9 @@ def _trans_remote(
         },
     )
     final = cli._poll_request(req["id"], label="transcrição no escritório")
-    cli._download(final["result_url"], saida_dir / f"transcricao_{req['id'][:8]}.zip")
-    return saida_dir
+    destino = saida_dir / f"transcricao_{req['id'][:8]}.zip"
+    cli._download(final["result_url"], destino)
+    return saida_dir, [destino]
 
 
 def _trans_local(
@@ -202,7 +218,7 @@ def _trans_local(
     timestamps: bool,
     beam_size: int,
     progress: bool,
-) -> Path:
+) -> tuple[Path, list[Path]]:
     try:
         from faster_whisper import WhisperModel
         from labdados_core.transcricao import Segment, format_segments
@@ -211,7 +227,12 @@ def _trans_local(
             "Transcrição local requer:\n    pip install labdados[transcricao]"
         ) from exc
 
+    from labdados._modelos import resolver_modelo
     from labdados._progress import clear_status, render_status
+
+    # Modelos pequenos vem das nossas releases; o resto continua vindo do
+    # Hugging Face. Ver labdados/_modelos.py para o porque.
+    modelo = resolver_modelo(modelo, progress=progress)
 
     if progress:
         render_status(f"carregando faster-whisper:{modelo}...", frame=0)
@@ -221,6 +242,7 @@ def _trans_local(
     if progress:
         clear_status()
 
+    produzidos: list[Path] = []
     for i, audio in enumerate(audios, start=1):
         if progress:
             render_status(f"transcrevendo {i}/{len(audios)}: {audio.name}", frame=i)
@@ -245,7 +267,8 @@ def _trans_local(
             ),
             encoding="utf-8",
         )
+        produzidos.append(out_path)
 
     if progress:
         clear_status()
-    return saida_dir
+    return saida_dir, produzidos

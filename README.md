@@ -113,6 +113,17 @@ labdados.estruturacao(
 
 Cada chamada faz upload, dispara o processamento, faz polling até concluir e baixa o resultado em `saida/` (geralmente um `.zip`).
 
+### Só quero o texto
+
+Passe `text=True` e a função devolve uma `str` em vez do caminho da pasta. Os arquivos continuam sendo gravados em `saida/`, mas você não precisa abrir zip nem caminho nenhum:
+
+```python
+texto = labdados.transcricao(arquivos="audio.ogg", local=True, text=True)
+print(len(texto.split()), "palavras")
+```
+
+Funciona igual nos modos nuvem e local, em `ocr` e em `transcricao`.
+
 ### Cliente reutilizável
 
 Se for fazer várias chamadas, crie um `Client` uma vez:
@@ -141,7 +152,7 @@ Não precisa de API key — `local=True` já basta.
 - **OCR local** — `pip install labdados[ocr]` + Tesseract no SO
   ([instalador](https://tesseract-ocr.github.io)). No Windows, o SDK
   procura em `C:\Program Files\Tesseract-OCR\tesseract.exe` automaticamente; em outro path, defina `TESSERACT_CMD`.
-- **Transcrição local** — `pip install labdados[transcricao]`. Roda em CPU (lento) ou GPU CUDA (se torch detectar). **Sem diarização local** — para diarizar, use o modo nuvem com `modelo="whisperx"`.
+- **Transcrição local** — `pip install labdados[transcricao]`. Roda em CPU (lento) ou GPU CUDA (se torch detectar). **Sem diarização local** — para diarizar, use o modo nuvem com `modelo="whisperx"`. O modelo `tiny` vem das releases deste repositório e fica em cache em `~/.cache/labdados/modelos/`; os maiores vêm do Hugging Face. Isso existe porque o HF barra download anônimo vindo de IP de datacenter (Google Colab, CI) pedindo um `HF_TOKEN`. Para forçar o HF em todos, defina `LABDADOS_MODELOS_HF=1`; para trocar a pasta de cache, `LABDADOS_CACHE`. `modelo_local` também aceita o caminho de uma pasta com o modelo já baixado.
 - **Estruturação local** — `pip install labdados[estruturacao]`. Espera um servidor OpenAI-compatible no `base_url_local`. Default: [Ollama](https://ollama.com) em `http://localhost:11434/v1`. Funciona também com OpenAI direto, Azure OpenAI, vLLM, LM Studio.
 - **Viabilidade** — `pip install labdados[viabilidade]`. Usa juscraper + Datajud direto da sua máquina (precisa de internet). Para gerar PDF, instale o binário do [Quarto](https://quarto.org).
 

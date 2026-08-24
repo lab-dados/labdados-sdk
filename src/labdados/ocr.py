@@ -21,7 +21,7 @@ from __future__ import annotations
 from pathlib import Path
 from typing import Literal
 
-from labdados._io import PathLike, ensure_output_dir, resolve_inputs
+from labdados._io import PathLike, collect_text, ensure_output_dir, resolve_inputs
 from labdados.client import Client
 from labdados.exceptions import LocalDependencyMissing
 
@@ -41,9 +41,10 @@ def ocr(
     dpi: int = 200,
     deskew: bool = False,
     local: bool = False,
+    text: bool = False,
     client: Client | None = None,
     progress: bool = True,
-) -> Path:
+) -> Path | str:
     """Extrai texto de PDFs.
 
     Parameters
@@ -74,6 +75,11 @@ def ocr(
     local
         Se ``True``, processa no próprio computador (exige
         ``pip install labdados[ocr]`` e Tesseract instalado no OS).
+    text
+        Se ``True``, devolve o texto reconhecido como ``str`` em vez do
+        caminho da pasta. Os arquivos continuam sendo gravados em
+        ``saida``. Com vários PDFs, os textos vêm concatenados na ordem de
+        entrada, separados por linha em branco.
     client
         Reaproveita um :class:`labdados.Client` existente. Quando passado,
         o ``api_key`` daqui é ignorado.
@@ -82,8 +88,9 @@ def ocr(
 
     Returns
     -------
-    Path
-        Caminho do diretório de saída (criado se preciso).
+    Path | str
+        Caminho do diretório de saída, ou o texto reconhecido quando
+        ``text=True``.
 
     Examples
     --------
@@ -105,7 +112,7 @@ def ocr(
                 "No modo local, OCR suporta apenas modelo='pymupdf-tesseract'. "
                 "Use local=False para modelo='paddleocr'."
             )
-        return _ocr_local(
+        saida_dir, produzidos = _ocr_local(
             pdfs,
             saida_dir=saida_dir,
             formato=formato,
@@ -114,18 +121,23 @@ def ocr(
             deskew=deskew,
             progress=progress,
         )
-    return _ocr_remote(
-        pdfs,
-        saida_dir=saida_dir,
-        api_key=api_key,
-        client=client,
-        modelo=modelo,
-        formato=formato,
-        idiomas=idiomas,
-        dpi=dpi,
-        deskew=deskew,
-        progress=progress,
-    )
+    else:
+        saida_dir, produzidos = _ocr_remote(
+            pdfs,
+            saida_dir=saida_dir,
+            api_key=api_key,
+            client=client,
+            modelo=modelo,
+            formato=formato,
+            idiomas=idiomas,
+            dpi=dpi,
+            deskew=deskew,
+            progress=progress,
+        )
+
+    if text:
+        return collect_text(produzidos)
+    return saida_dir
 
 
 # ---------------------------------------------------------------------------
@@ -145,7 +157,7 @@ def _ocr_remote(
     dpi: int,
     deskew: bool,
     progress: bool,
-) -> Path:
+) -> tuple[Path, list[Path]]:
     cli = client or Client(api_key=api_key, progress=progress)
     files_meta = cli._upload_files("ocr", pdfs)
     config: dict = {
@@ -164,8 +176,9 @@ def _ocr_remote(
         },
     )
     final = cli._poll_request(req["id"], label="OCR no escritório")
-    cli._download(final["result_url"], saida_dir / f"ocr_{req['id'][:8]}.zip")
-    return saida_dir
+    destino = saida_dir / f"ocr_{req['id'][:8]}.zip"
+    cli._download(final["result_url"], destino)
+    return saida_dir, [destino]
 
 
 # ---------------------------------------------------------------------------
@@ -182,7 +195,7 @@ def _ocr_local(
     dpi: int,
     deskew: bool,
     progress: bool,
-) -> Path:
+) -> tuple[Path, list[Path]]:
     try:
         from labdados_core.ocr import (
             EngineUnavailable,
@@ -198,6 +211,7 @@ def _ocr_local(
 
     from labdados._progress import clear_status, render_status
 
+    produzidos: list[Path] = []
     for i, pdf in enumerate(pdfs, start=1):
         if progress:
             render_status(f"OCR local {i}/{len(pdfs)}: {pdf.name}", frame=i)
@@ -218,7 +232,8 @@ def _ocr_local(
         ext = "md" if formato == "md" else "txt"
         out_path = saida_dir / f"{pdf.stem}.{ext}"
         out_path.write_text(text, encoding="utf-8")
+        produzidos.append(out_path)
 
     if progress:
         clear_status()
-    return saida_dir
+    return saida_dir, produzidos

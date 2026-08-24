@@ -83,6 +83,11 @@ def transcricao(
         Modelo do faster-whisper (``"tiny"``, ``"base"``, ``"small"``,
         ``"medium"``, ``"large-v3"``). Mais alto = mais preciso e mais
         lento; ``large-v3`` precisa de ~10GB de VRAM em GPU ou bastante RAM.
+        Aceita também o caminho de uma pasta com o modelo já baixado.
+        ``"tiny"`` vem das releases deste repositório, para não depender do
+        Hugging Face, que barra download anônimo vindo de IP de datacenter
+        (é o caso do Google Colab). Os demais vêm do Hugging Face. Para
+        forçar o Hugging Face em todos, defina ``LABDADOS_MODELOS_HF=1``.
     text
         Se ``True``, devolve o texto transcrito como ``str`` em vez do
         caminho da pasta. Os arquivos continuam sendo gravados em
@@ -222,7 +227,12 @@ def _trans_local(
             "Transcrição local requer:\n    pip install labdados[transcricao]"
         ) from exc
 
+    from labdados._modelos import resolver_modelo
     from labdados._progress import clear_status, render_status
+
+    # Modelos pequenos vem das nossas releases; o resto continua vindo do
+    # Hugging Face. Ver labdados/_modelos.py para o porque.
+    modelo = resolver_modelo(modelo, progress=progress)
 
     if progress:
         render_status(f"carregando faster-whisper:{modelo}...", frame=0)

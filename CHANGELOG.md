@@ -7,6 +7,15 @@ versionamento seguindo [SemVer](https://semver.org/lang/pt-BR/).
 
 ## [Unreleased]
 
+### Adicionado
+- Parâmetro `text=True` em `labdados.ocr(...)` e `labdados.transcricao(...)`:
+  devolve o texto como `str` em vez do caminho da pasta. Os arquivos
+  continuam sendo gravados em `saida`. Funciona nos dois modos: no local
+  lê os `.txt`/`.md`/`.srt` gerados, e na nuvem lê de dentro do `.zip`
+  baixado, sem exigir que quem chama saiba desses detalhes.
+- Helper interno `labdados._io.collect_text(paths)`, compartilhado pelos
+  dois serviços.
+
 ## [0.8.0] - 2026-05-04
 
 ### Adicionado

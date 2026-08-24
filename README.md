@@ -113,6 +113,17 @@ labdados.estruturacao(
 
 Cada chamada faz upload, dispara o processamento, faz polling até concluir e baixa o resultado em `saida/` (geralmente um `.zip`).
 
+### Só quero o texto
+
+Passe `text=True` e a função devolve uma `str` em vez do caminho da pasta. Os arquivos continuam sendo gravados em `saida/`, mas você não precisa abrir zip nem caminho nenhum:
+
+```python
+texto = labdados.transcricao(arquivos="audio.ogg", local=True, text=True)
+print(len(texto.split()), "palavras")
+```
+
+Funciona igual nos modos nuvem e local, em `ocr` e em `transcricao`.
+
 ### Cliente reutilizável
 
 Se for fazer várias chamadas, crie um `Client` uma vez:

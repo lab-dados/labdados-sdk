@@ -10,10 +10,14 @@ a mesma semântica de input — tanto faz `arquivos="pasta/"`,
 from __future__ import annotations
 
 import os
+import zipfile
 from collections.abc import Iterable
 from pathlib import Path
 
 PathLike = str | os.PathLike[str]
+
+# Extensões consideradas "texto" ao montar o retorno de ``text=True``.
+TEXT_SUFFIXES = (".txt", ".md", ".srt", ".vtt")
 
 
 def resolve_inputs(
@@ -109,3 +113,36 @@ def ensure_output_dir(saida: PathLike | None) -> Path:
     out = out.expanduser()
     out.mkdir(parents=True, exist_ok=True)
     return out
+
+
+def collect_text(paths: Iterable[Path]) -> str:
+    """Lê os arquivos produzidos por um serviço e devolve o texto concatenado.
+
+    Aceita tanto arquivos de texto soltos (o que o modo local grava) quanto
+    ``.zip`` (o que a nuvem devolve). No caso do zip, lê apenas os membros
+    com extensão de texto, em ordem alfabética, para que o resultado seja
+    determinístico.
+
+    Parameters
+    ----------
+    paths
+        Arquivos gerados pela chamada, na ordem de entrada.
+
+    Returns
+    -------
+    str
+        Conteúdo dos arquivos, separados por linha em branco.
+    """
+    pedacos: list[str] = []
+    for path in paths:
+        if path.suffix.lower() == ".zip":
+            with zipfile.ZipFile(path) as zf:
+                for nome in sorted(zf.namelist()):
+                    if nome.endswith("/"):
+                        continue
+                    if Path(nome).suffix.lower() not in TEXT_SUFFIXES:
+                        continue
+                    pedacos.append(zf.read(nome).decode("utf-8", errors="replace"))
+        else:
+            pedacos.append(path.read_text(encoding="utf-8"))
+    return "\n\n".join(p.strip() for p in pedacos if p.strip())

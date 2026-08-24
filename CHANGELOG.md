@@ -7,6 +7,8 @@ versionamento seguindo [SemVer](https://semver.org/lang/pt-BR/).
 
 ## [Unreleased]
 
+## [0.9.0] - 2026-08-24
+
 ### Adicionado
 - Parâmetro `text=True` em `labdados.ocr(...)` e `labdados.transcricao(...)`:
   devolve o texto como `str` em vez do caminho da pasta. Os arquivos

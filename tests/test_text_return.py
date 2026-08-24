@@ -9,7 +9,13 @@ porque depende de binários e modelos.
 from __future__ import annotations
 
 import inspect
+import io
+import re
 import zipfile
+from pathlib import Path
+
+import httpx
+import respx
 
 import labdados
 from labdados._io import collect_text
@@ -72,3 +78,67 @@ def test_parametro_text_existe_nas_funcoes_publicas():
         assert "text" in parametros, funcao.__name__
         assert parametros["text"].default is False
         assert parametros["text"].kind is inspect.Parameter.KEYWORD_ONLY
+
+
+def _zip_com(nome: str, conteudo: str) -> bytes:
+    """Monta em memória um zip como o que a nuvem devolve."""
+    buf = io.BytesIO()
+    with zipfile.ZipFile(buf, "w") as zf:
+        zf.writestr(nome, conteudo)
+    return buf.getvalue()
+
+
+@respx.mock
+def test_nuvem_com_text_devolve_o_texto_de_dentro_do_zip(tmp_path: Path):
+    """Fluxo nuvem completo: com text=True, sai a string, não o caminho."""
+    pdf = tmp_path / "acordao.pdf"
+    pdf.write_bytes(b"%PDF-1.4 dummy bytes")
+    saida = tmp_path / "out"
+
+    from labdados.client import PUBLIC_BASE_URL as base
+
+    respx.post(f"{base}/api/v1/uploads/sas").mock(
+        return_value=httpx.Response(
+            200,
+            json={
+                "upload_url": "https://sas.example/u?sig=x",
+                "blob_path": "ocr/abc/acordao.pdf",
+                "expires_at": "2030-01-01T00:00:00Z",
+            },
+        )
+    )
+    respx.put(re.compile(r"^https://sas\.example/u")).mock(
+        return_value=httpx.Response(201)
+    )
+    respx.post(f"{base}/api/v1/requests").mock(
+        return_value=httpx.Response(201, json={"id": "req-9", "status": "APPROVED"})
+    )
+    respx.get(f"{base}/api/v1/requests/req-9").mock(
+        return_value=httpx.Response(
+            200,
+            json={
+                "id": "req-9",
+                "status": "COMPLETED",
+                "result_url": "https://sas.example/r?sig=y",
+            },
+        )
+    )
+    respx.get(re.compile(r"^https://sas\.example/r")).mock(
+        return_value=httpx.Response(
+            200, content=_zip_com("acordao.txt", "ACORDAO. Vistos, relatados.")
+        )
+    )
+
+    texto = labdados.ocr(
+        arquivos=pdf,
+        api_key="sk_lab_test",
+        saida=saida,
+        modelo="pymupdf-tesseract",
+        text=True,
+        progress=False,
+    )
+
+    assert isinstance(texto, str)
+    assert texto == "ACORDAO. Vistos, relatados."
+    # O zip continua em disco: text=True não tira o arquivo de ninguém.
+    assert len(list(saida.glob("ocr_*.zip"))) == 1

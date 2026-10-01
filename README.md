@@ -99,6 +99,7 @@ labdados.estruturacao(
     arquivos="acordaos.csv",
     coluna_texto="ementa",
     api_key="sk_lab_...",
+    modelo="gpt-4.1-mini",          # ou "gpt-5.6-luna" (raciocínio, mais caro)
     schema={
         "type": "object",
         "properties": {
@@ -153,7 +154,7 @@ Não precisa de API key — `local=True` já basta.
   ([instalador](https://tesseract-ocr.github.io)). No Windows, o SDK
   procura em `C:\Program Files\Tesseract-OCR\tesseract.exe` automaticamente; em outro path, defina `TESSERACT_CMD`.
 - **Transcrição local** — `pip install labdados[transcricao]`. Roda em CPU (lento) ou GPU CUDA (se torch detectar). **Sem diarização local** — para diarizar, use o modo nuvem com `modelo="whisperx"`. O modelo `tiny` vem das releases deste repositório e fica em cache em `~/.cache/labdados/modelos/`; os maiores vêm do Hugging Face. Isso existe porque o HF barra download anônimo vindo de IP de datacenter (Google Colab, CI) pedindo um `HF_TOKEN`. Para forçar o HF em todos, defina `LABDADOS_MODELOS_HF=1`; para trocar a pasta de cache, `LABDADOS_CACHE`. `modelo_local` também aceita o caminho de uma pasta com o modelo já baixado.
-- **Estruturação local** — `pip install labdados[estruturacao]`. Espera um servidor OpenAI-compatible no `base_url_local`. Default: [Ollama](https://ollama.com) em `http://localhost:11434/v1`. Funciona também com OpenAI direto, Azure OpenAI, vLLM, LM Studio.
+- **Estruturação local** — `pip install labdados[estruturacao]`. Espera um servidor OpenAI-compatible no `base_url_local`. Default: [Ollama](https://ollama.com) em `http://localhost:11434/v1`. Funciona também com OpenAI direto, Azure OpenAI (endpoints `*.openai.azure.com` são detectados e chamados pela API v1), vLLM, LM Studio.
 - **Viabilidade** — `pip install labdados[viabilidade]`. Usa juscraper + Datajud direto da sua máquina (precisa de internet). Para gerar PDF, instale o binário do [Quarto](https://quarto.org).
 
 ### Exemplos
@@ -192,6 +193,19 @@ labdados.estruturacao(
     base_url_local="https://api.openai.com/v1",
     api_key_local="sk-...",
     modelo_local="gpt-4.1-mini",
+)
+
+# Estruturação local direto num recurso Azure OpenAI (ex.: o da equipe LabDados).
+# modelo_local = nome do deployment; para modelos de raciocínio (gpt-5.x)
+# use temperatura=None.
+labdados.estruturacao(
+    arquivos="textos/",
+    schema={...},
+    local=True,
+    base_url_local=os.environ["AZURE_OPENAI_ENDPOINT"],  # https://<recurso>.openai.azure.com/
+    api_key_local=os.environ["AZURE_OPENAI_KEY"],
+    modelo_local="<nome-do-deployment>",
+    temperatura=None,
 )
 
 # Viabilidade (sempre local, sem nuvem por enquanto)
@@ -286,7 +300,7 @@ client.ocr(arquivos="pdfs/", saida="out/")
 
 - **OCR**: build CPU (`pymupdf-tesseract`). Para `paddleocr` (GPU), use o override `docker-compose.gpu.yml`.
 - **Transcrição**: build CPU (faster-whisper standalone). `model_id="whisperx"` retorna 400 com mensagem clara — para WhisperX + diarização, use `docker-compose.gpu.yml`.
-- **Estruturação**: usa Azure OpenAI (`gpt-4.1-mini`). Configure `AZURE_OPENAI_ENDPOINT` e `AZURE_OPENAI_KEY` no `.env` antes de subir.
+- **Estruturação**: usa o Azure OpenAI da FGV (`gpt-4.1-mini`, `gpt-5.6-luna`). Configure `AZURE_OPENAI_ENDPOINT` e `AZURE_OPENAI_KEY` no `.env` antes de subir (a equipe do escritório tem os valores).
 - **Viabilidade**: funciona out-of-the-box.
 
 ### Subindo com GPU local

@@ -1,6 +1,6 @@
 [project]
 name = "labdados"
-version = "0.9.0"
+version = "0.10.0"
 description = "SDK Python para os serviços do escritório de apoio do LabDados / FGV Direito SP — OCR, transcrição, estruturação com LLMs e análise de viabilidade. Roda em modo nuvem (com API key) ou local."
 readme = "README.md"
 license = { text = "MIT" }
@@ -66,7 +66,8 @@ transcricao = [
 # labdados-core (compartilhado com o backend, sem chance de divergir
 # em prompt ou parsing). O extra do core já traz openai e openpyxl.
 estruturacao = [
-    "labdados-core[estruturacao]>=0.9,<1.0",
+    # >=0.12: max_completion_tokens/temperature=None (modelos de raciocínio).
+    "labdados-core[estruturacao]>=0.12,<1.0",
 ]
 # Análise de viabilidade local: usa ``labdados-core`` — o pacote núcleo
 # que o backend também consome (mesmas regras de veredito, mesmo template

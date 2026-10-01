@@ -209,6 +209,32 @@ def test_estruturacao_schema_passthrough():
     # é exercitado em test_ocr_remote_full_flow.
 
 
+def test_estruturacao_local_azure_usa_api_v1():
+    """Endpoint Azure vira provider ``openai`` na API v1.
+
+    Modelos de raciocínio (gpt-5.6-luna) rejeitam ``max_tokens`` — só o
+    provider ``openai`` do core manda ``max_completion_tokens``.
+    """
+    from labdados.estruturacao import _resolve_local_endpoint
+
+    azure = "https://meu-recurso.openai.azure.com/"
+    v1 = "https://meu-recurso.openai.azure.com/openai/v1/"
+    assert _resolve_local_endpoint(azure) == ("openai", v1)
+    assert _resolve_local_endpoint(v1) == ("openai", v1)
+    assert _resolve_local_endpoint("http://localhost:11434/v1") == (
+        "openai_compat",
+        "http://localhost:11434/v1",
+    )
+
+
+def test_estruturacao_modelos_nuvem():
+    from typing import get_args
+
+    from labdados.estruturacao import MODELO_NUVEM
+
+    assert set(get_args(MODELO_NUVEM)) == {"gpt-4.1-mini", "gpt-5.6-luna"}
+
+
 def test_anonimizacao_estrategia_default():
     """Default deve ser 'categoria' — padrão mais legível."""
     import inspect

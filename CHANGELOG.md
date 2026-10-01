@@ -7,6 +7,24 @@ versionamento seguindo [SemVer](https://semver.org/lang/pt-BR/).
 
 ## [Unreleased]
 
+## [0.10.0] - 2026-10-01
+
+### Adicionado
+- `labdados.estruturacao(modelo="gpt-5.6-luna")` — modelo de raciocínio
+  servido pelo recurso Azure OpenAI da FGV (Brazil South, Global
+  Standard). Mais capaz em textos longos/difíceis; mais caro e ignora
+  `temperatura`. O default continua `gpt-4.1-mini`, agora também servido
+  pelo recurso da FGV.
+- Modo local reconhece endpoints Azure (`*.openai.azure.com`,
+  `*.services.ai.azure.com`) e os chama pela API v1 OpenAI-compatível —
+  dá para usar direto a chave do recurso da FGV com
+  `base_url_local=<endpoint>`, `modelo_local=<deployment>`.
+- `temperatura=None` omite o parâmetro (obrigatório no modo local com
+  modelos de raciocínio).
+
+### Alterado
+- Extra `[estruturacao]` exige `labdados-core>=0.12`.
+
 ## [0.9.0] - 2026-08-24
 
 ### Adicionado

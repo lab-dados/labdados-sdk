@@ -2,15 +2,20 @@
 
 Modo nuvem
 ----------
-Roda na infra do escritório (GPT-4.1-mini via Azure OpenAI). Os modelos
-self-host em GPU A100 (gpt-oss-20b, gemma-4-26b-it) foram descontinuados
-por custo proibitivo no padrão de uso atual.
+Roda na infra do escritório, com os modelos servidos pelo recurso Azure
+OpenAI da FGV (Brazil South, Global Standard): ``gpt-4.1-mini`` (default)
+e ``gpt-5.6-luna`` (modelo de raciocínio, mais capaz e mais caro). Os
+modelos self-host em GPU A100 (gpt-oss-20b, gemma-4-26b-it) foram
+descontinuados por custo proibitivo no padrão de uso atual.
 
 Modo local
 ----------
 Cliente OpenAI-compatível: aceita OpenAI, Azure OpenAI, Ollama (default
 ``http://localhost:11434/v1``) ou qualquer servidor ``/v1/chat/completions``.
-O usuário traz a própria chave/URL. Desde a v0.5.0 a chamada ao LLM e a
+O usuário traz a própria chave/URL. Endpoints Azure
+(``*.openai.azure.com`` / ``*.services.ai.azure.com``) — como o recurso
+da FGV — são reconhecidos automaticamente e chamados pela API v1
+(``/openai/v1/``); ``modelo_local`` é o nome do *deployment*. Desde a v0.5.0 a chamada ao LLM e a
 montagem do prompt vivem em ``labdados_core.estruturacao`` — o mesmo
 código rodado pelo backend (``services/structuring``), garantindo que
 prompt e parsing não divirjam.
@@ -34,7 +39,7 @@ from labdados._io import PathLike, ensure_output_dir, resolve_inputs
 from labdados.client import Client
 from labdados.exceptions import LocalDependencyMissing
 
-MODELO_NUVEM = Literal["gpt-4.1-mini"]
+MODELO_NUVEM = Literal["gpt-4.1-mini", "gpt-5.6-luna"]
 ACCEPTED_EXTENSIONS = (".txt", ".md", ".docx", ".csv", ".xlsx")
 
 
@@ -47,7 +52,7 @@ def estruturacao(
     api_key: str | None = None,
     modelo: str = "gpt-4.1-mini",
     coluna_texto: str = "",
-    temperatura: float = 0.0,
+    temperatura: float | None = 0.0,
     max_tokens: int = 4096,
     local: bool = False,
     base_url_local: str = "http://localhost:11434/v1",
@@ -75,14 +80,20 @@ def estruturacao(
     api_key
         Chave de API do escritório (modo nuvem).
     modelo
-        ``"gpt-4.1-mini"`` (default — único modelo nuvem disponível
-        hoje). Os modelos self-host em GPU A100 (gpt-oss-20b,
-        gemma-4-26b-it) foram descontinuados por custo.
+        ``"gpt-4.1-mini"`` (default) ou ``"gpt-5.6-luna"`` — ambos no
+        Azure OpenAI da FGV. O ``gpt-5.6-luna`` é um modelo de raciocínio:
+        extrai melhor em textos longos/difíceis, mas custa mais (tokens de
+        raciocínio contam como saída) e ignora ``temperatura``. Os modelos
+        self-host em GPU A100 (gpt-oss-20b, gemma-4-26b-it) foram
+        descontinuados por custo.
     coluna_texto
         Para CSV/XLSX: nome da coluna que contém o texto a ser estruturado.
         Vazio = concatena todas as colunas da linha.
     temperatura
         ``0.0`` para resultado determinístico (recomendado em extração).
+        ``None`` omite o parâmetro — obrigatório no modo local com modelos
+        de raciocínio (família GPT-5, ex.: ``gpt-5.6-luna``), que só aceitam a
+        temperatura padrão.
     max_tokens
         Tamanho máximo da resposta JSON. Aumente se o JSON estiver sendo
         cortado.
@@ -90,9 +101,11 @@ def estruturacao(
         Se ``True``, chama um servidor OpenAI-compatível local. Default:
         Ollama em ``http://localhost:11434/v1``.
     base_url_local, api_key_local, modelo_local
-        Configuração do servidor local. Para Azure OpenAI, ajuste
-        ``base_url_local`` e ``api_key_local``. Para Ollama, mantenha
-        os defaults e mude apenas ``modelo_local`` (ex.: ``"qwen2.5:7b"``).
+        Configuração do servidor local. Para Azure OpenAI (ex.: o recurso
+        da FGV), use o endpoint do recurso em ``base_url_local``, a chave em
+        ``api_key_local`` e o nome do deployment em ``modelo_local``. Para
+        Ollama, mantenha os defaults e mude apenas ``modelo_local`` (ex.:
+        ``"qwen2.5:7b"``).
     client
         Cliente reaproveitado (modo nuvem).
     progress
@@ -123,6 +136,20 @@ def estruturacao(
     ...         },
     ...         "required": ["autor", "reu"],
     ...     },
+    ... )
+
+    Modo local chamando direto um recurso Azure OpenAI (ex.: um deployment de
+    ``gpt-5.6-luna`` — modelo de raciocínio, por isso ``temperatura=None``):
+
+    >>> import os
+    >>> labdados.estruturacao(
+    ...     arquivos="textos/",
+    ...     schema={"type": "object", "properties": {"resumo": {"type": "string"}}},
+    ...     local=True,
+    ...     base_url_local=os.environ["AZURE_OPENAI_ENDPOINT"],  # https://<recurso>.openai.azure.com/
+    ...     api_key_local=os.environ["AZURE_OPENAI_KEY"],
+    ...     modelo_local="<nome-do-deployment>",
+    ...     temperatura=None,
     ... )
 
     Modo local com Ollama:
@@ -177,7 +204,7 @@ def _estr_remote(
     schema: dict[str, Any],
     prompt_sistema: str,
     coluna_texto: str,
-    temperatura: float,
+    temperatura: float | None,
     max_tokens: int,
     progress: bool,
 ) -> Path:
@@ -187,9 +214,11 @@ def _estr_remote(
         "system_prompt": prompt_sistema,
         "schema": json.dumps(schema, ensure_ascii=False),
         "csv_text_column": coluna_texto,
-        "temperature": temperatura,
         "max_output_tokens": max_tokens,
     }
+    # None = padrão do serviço (que já ignora temperature em modelos de raciocínio).
+    if temperatura is not None:
+        config["temperature"] = temperatura
     req = cli._post(
         "/api/v1/requests",
         {
@@ -211,7 +240,7 @@ def _estr_local(
     schema: dict[str, Any],
     prompt_sistema: str,
     coluna_texto: str,
-    temperatura: float,
+    temperatura: float | None,
     max_tokens: int,
     base_url: str,
     api_key_local: str,
@@ -238,8 +267,9 @@ def _estr_local(
 
     from labdados._progress import clear_status, render_status
 
+    provider, base_url = _resolve_local_endpoint(base_url)
     llm_config = LlmConfig(
-        provider="openai_compat",
+        provider=provider,
         model=modelo_local,
         api_key=api_key_local,
         base_url=base_url,
@@ -268,3 +298,27 @@ def _estr_local(
     if progress:
         clear_status()
     return saida_dir
+
+
+_AZURE_HOST_SUFFIXES = (".openai.azure.com", ".services.ai.azure.com", ".cognitiveservices.azure.com")
+
+
+def _resolve_local_endpoint(base_url: str) -> tuple[str, str]:
+    """Escolhe provider e URL do modo local.
+
+    Endpoints Azure (ex.: o recurso da FGV) são chamados pela API v1
+    OpenAI-compatível (``https://<recurso>.openai.azure.com/openai/v1/``)
+    com ``provider="openai"`` — assim o core manda ``max_completion_tokens``,
+    exigido pelos modelos de raciocínio. Qualquer outra URL (Ollama, vLLM,
+    LM Studio) segue como ``openai_compat``.
+    """
+    from urllib.parse import urlparse
+
+    parsed = urlparse(base_url)
+    host = parsed.hostname or ""
+    if not host.endswith(_AZURE_HOST_SUFFIXES):
+        return "openai_compat", base_url
+    path = parsed.path.rstrip("/")
+    if not path.endswith("/openai/v1"):
+        path = "/openai/v1"
+    return "openai", f"{parsed.scheme}://{host}{path}/"

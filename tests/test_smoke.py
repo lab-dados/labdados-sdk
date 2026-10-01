@@ -232,7 +232,7 @@ def test_estruturacao_modelos_nuvem():
 
     from labdados.estruturacao import MODELO_NUVEM
 
-    assert set(get_args(MODELO_NUVEM)) == {"gpt-4.1-mini", "gpt-5.6-luna"}
+    assert {"gpt-4.1-mini", "gpt-5.6-luna", "DeepSeek-V4-Flash", "Mistral-Large-3"} <= set(get_args(MODELO_NUVEM))
 
 
 def test_anonimizacao_estrategia_default():
@@ -279,11 +279,94 @@ def test_test_connection_returns_metadata():
 
 
 def test_diarization_validation():
-    """Diarização exige WhisperX — falha cedo no SDK."""
-    with pytest.raises(ValueError, match="modelo='whisperx'"):
+    """Diarização exige azure-speech ou WhisperX — falha cedo no SDK."""
+    with pytest.raises(ValueError, match="azure-speech"):
         labdados.transcricao(
             arquivos=Path("ignored"),  # nem chega a tocar no arquivo
             api_key="sk_lab_x",
             modelo="whisper-large-v3-turbo",
             diarizacao=True,
         )
+
+
+@respx.mock
+def test_embeddings_remote_extrai_zip_na_saida(tmp_path: Path):
+    """Fluxo nuvem de embeddings: upload, request com service_id/config, polling e extração."""
+    import io
+    import json
+    import zipfile
+
+    txt = tmp_path / "doc.txt"
+    txt.write_text("Ação de cobrança.", encoding="utf-8")
+    saida = tmp_path / "out"
+
+    from labdados.client import PUBLIC_BASE_URL as base
+
+    zbuf = io.BytesIO()
+    with zipfile.ZipFile(zbuf, "w") as zf:
+        zf.writestr("embeddings.parquet", b"PAR1fake")
+        zf.writestr("chunks.csv", "arquivo,doc_id,chunk,texto\n")
+    respx.post(f"{base}/api/v1/uploads/sas").mock(
+        return_value=httpx.Response(200, json={"upload_url": "https://sas.example/u?sig=x", "blob_path": "embeddings/a/doc.txt", "expires_at": "2030-01-01T00:00:00Z"})
+    )
+    respx.put(re.compile(r"^https://sas\.example/u")).mock(return_value=httpx.Response(201))
+    create = respx.post(f"{base}/api/v1/requests").mock(return_value=httpx.Response(201, json={"id": "req-emb", "status": "APPROVED"}))
+    respx.get(f"{base}/api/v1/requests/req-emb").mock(
+        return_value=httpx.Response(200, json={"id": "req-emb", "status": "COMPLETED", "result_url": "https://sas.example/r?sig=y"})
+    )
+    respx.get(re.compile(r"^https://sas\.example/r")).mock(return_value=httpx.Response(200, content=zbuf.getvalue()))
+
+    out = labdados.embeddings(txt, api_key="sk_lab_test", saida=saida, modelo="embed-v-4-0", max_chars=500, progress=False)
+
+    assert out == saida
+    assert (saida / "embeddings.parquet").read_bytes() == b"PAR1fake"
+    assert (saida / "chunks.csv").exists()
+    body = json.loads(create.calls.last.request.content)
+    assert body["service_id"] == "embeddings"
+    assert body["model_id"] == "embed-v-4-0"
+    assert body["config"] == {"csv_text_column": "", "max_chars": 500, "overlap": 200}
+
+
+def test_embeddings_local_com_servidor_openai_compat(tmp_path: Path, monkeypatch):
+    """Modo local com base_url_local usa provider openai e grava parquet legível."""
+    pytest.importorskip("labdados_core.embeddings")
+    pytest.importorskip("pandas")
+    pytest.importorskip("pyarrow")
+    import labdados_core.embeddings.pipeline as pipeline
+
+    captured = {}
+
+    def fake_embed(texts, config):
+        captured["config"] = config
+        return [[1.0, 0.0] for _ in texts]
+
+    monkeypatch.setattr(pipeline, "embed", fake_embed)
+    monkeypatch.setattr("labdados_core.embeddings.embed", fake_embed)
+    (tmp_path / "a.txt").write_text("Primeiro texto.", encoding="utf-8")
+
+    df = labdados.embeddings(
+        tmp_path / "a.txt", saida=tmp_path / "out", local=True,
+        base_url_local="http://localhost:11434/v1", modelo_local="nomic-embed-text",
+        dataframe=True, progress=False,
+    )
+
+    assert captured["config"].provider == "openai"
+    assert captured["config"].model == "nomic-embed-text"
+    assert list(df["texto"]) == ["Primeiro texto."]
+    assert [list(v) for v in df["embedding"]] == [[1.0, 0.0]]
+
+
+def test_defaults_de_modelo_nuvem_sao_do_foundry():
+    import inspect
+    from typing import get_args
+
+    from labdados import embeddings as emb_mod  # noqa: F401
+    from labdados.estruturacao import MODELO_NUVEM as EST
+    from labdados.ocr import MODELO_PADRAO_NUVEM as OCR_PADRAO
+    from labdados.transcricao import MODELO_PADRAO_NUVEM as TR_PADRAO
+
+    assert OCR_PADRAO == "azure-document-intelligence"
+    assert TR_PADRAO == "azure-speech"
+    assert inspect.signature(labdados.ocr).parameters["modelo"].default is None
+    assert "gpt-6-luna" in get_args(EST) and len(get_args(EST)) == 9
+

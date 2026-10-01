@@ -7,6 +7,26 @@ versionamento seguindo [SemVer](https://semver.org/lang/pt-BR/).
 
 ## [Unreleased]
 
+## [0.11.0] - 2026-10-01
+
+### Adicionado
+- `labdados.embeddings(...)` — transforma textos (`.txt/.md/.docx/.csv/.xlsx`)
+  em vetores. Nuvem: `text-embedding-3-small` (default),
+  `text-embedding-3-large`, `embed-v-4-0`, `Cohere-embed-v3-multilingual`.
+  Local: sentence-transformers (`pip install labdados[embeddings-local]`) ou
+  qualquer servidor OpenAI-compatível via `base_url_local`. Saída
+  `embeddings.parquet` + `chunks.csv`; `dataframe=True` devolve um DataFrame.
+- OCR na nuvem: `modelo="azure-document-intelligence"` e `"mistral-ocr"`.
+- Transcrição na nuvem: `modelo="azure-speech"` (com diarização).
+- Estruturação na nuvem: `gpt-4.1`, `gpt-5-mini`, `gpt-5.6-terra`,
+  `gpt-6-luna`, `DeepSeek-V4-Flash`, `Mistral-Large-3`, `Kimi-K2.6`.
+
+### Alterado
+- **Default de modelo na nuvem**: `ocr()` usa `azure-document-intelligence`
+  e `transcricao()` usa `azure-speech` (antes `pymupdf-tesseract` e
+  `whisper-large-v3-turbo`). Os modelos antigos continuam aceitos enquanto
+  os servidores GPU do escritório não forem desligados; o modo local não muda.
+
 ## [0.10.0] - 2026-10-01
 
 ### Adicionado

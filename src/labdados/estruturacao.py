@@ -39,7 +39,17 @@ from labdados._io import PathLike, ensure_output_dir, resolve_inputs
 from labdados.client import Client
 from labdados.exceptions import LocalDependencyMissing
 
-MODELO_NUVEM = Literal["gpt-4.1-mini", "gpt-5.6-luna"]
+MODELO_NUVEM = Literal[
+    "gpt-4.1-mini",
+    "gpt-4.1",
+    "gpt-5-mini",
+    "gpt-5.6-luna",
+    "gpt-5.6-terra",
+    "gpt-6-luna",
+    "DeepSeek-V4-Flash",
+    "Mistral-Large-3",
+    "Kimi-K2.6",
+]
 ACCEPTED_EXTENSIONS = (".txt", ".md", ".docx", ".csv", ".xlsx")
 
 
@@ -80,10 +90,12 @@ def estruturacao(
     api_key
         Chave de API do escritório (modo nuvem).
     modelo
-        ``"gpt-4.1-mini"`` (default) ou ``"gpt-5.6-luna"`` — ambos no
-        Azure OpenAI da FGV. O ``gpt-5.6-luna`` é um modelo de raciocínio:
-        extrai melhor em textos longos/difíceis, mas custa mais (tokens de
-        raciocínio contam como saída) e ignora ``temperatura``. Os modelos
+        ``"gpt-4.1-mini"`` (default) ou outro modelo do Azure AI Foundry da
+        FGV: ``"gpt-4.1"``, ``"gpt-5-mini"``, ``"gpt-5.6-luna"``,
+        ``"gpt-5.6-terra"``, ``"gpt-6-luna"``, ``"DeepSeek-V4-Flash"``,
+        ``"Mistral-Large-3"``, ``"Kimi-K2.6"``. Os GPT-5/6 são modelos de
+        raciocínio: extraem melhor em textos longos/difíceis, ignoram
+        ``temperatura`` e os tokens de raciocínio contam como saída. Os modelos
         self-host em GPU A100 (gpt-oss-20b, gemma-4-26b-it) foram
         descontinuados por custo.
     coluna_texto

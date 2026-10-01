@@ -31,6 +31,7 @@ from labdados._version import __version__
 from labdados.analise_viabilidade import analise_viabilidade
 from labdados.anonimizacao import anonimizacao
 from labdados.client import Client
+from labdados.embeddings import embeddings
 from labdados.estruturacao import estruturacao
 from labdados.exceptions import (
     ApiKeyError,
@@ -51,6 +52,7 @@ __all__ = [
     "estruturacao",
     "anonimizacao",
     "analise_viabilidade",
+    "embeddings",
     # Exceções
     "LabdadosError",
     "ApiKeyError",

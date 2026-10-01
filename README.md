@@ -7,6 +7,7 @@ Quatro funções de alto nível, em português, que cobrem os serviços do escri
 - `labdados.ocr(...)` — OCR de PDFs (texto e markdown).
 - `labdados.transcricao(...)` — transcrição (Whisper) e diarização de áudio.
 - `labdados.estruturacao(...)` — extração estruturada de campos com LLMs.
+- `labdados.embeddings(...)` — vetores de textos para busca semântica e agrupamento.
 - `labdados.analise_viabilidade(...)` — estima volume de processos antes de uma raspagem.
 
 ## Como usar — três modos
@@ -53,6 +54,7 @@ pip install labdados                    # base (apenas Modos 1 e 3)
 pip install labdados[ocr]               # + OCR local (PyMuPDF + Tesseract)
 pip install labdados[transcricao]       # + transcrição local (faster-whisper)
 pip install labdados[estruturacao]      # + estruturação local (cliente OpenAI-compat)
+pip install labdados[embeddings-local]  # + embeddings locais (sentence-transformers)
 pip install labdados[viabilidade]       # + análise de viabilidade (juscraper + Quarto)
 pip install labdados[all]               # tudo
 ```
@@ -81,7 +83,7 @@ import labdados
 labdados.ocr(
     arquivos="meus_pdfs/",          # arquivo, lista ou pasta
     api_key="sk_lab_...",
-    modelo="pymupdf-tesseract",     # ou "paddleocr" (mais preciso)
+    modelo="azure-document-intelligence",  # default; ou "mistral-ocr" (markdown, tabelas)
     formato="txt",                  # ou "md"
     idiomas="por+eng",
     saida="resultados/",
@@ -90,10 +92,13 @@ labdados.ocr(
 labdados.transcricao(
     arquivos="reuniao.mp3",
     api_key="sk_lab_...",
-    modelo="whisperx",              # com diarização
+    modelo="azure-speech",          # default; diarização inclusa
     diarizacao=True,
     saida="resultados/",
 )
+
+# Embeddings para busca semântica / agrupamento
+df = labdados.embeddings("acordaos.csv", coluna_texto="ementa", dataframe=True)
 
 labdados.estruturacao(
     arquivos="acordaos.csv",
@@ -132,7 +137,7 @@ Se for fazer várias chamadas, crie um `Client` uma vez:
 ```python
 client = labdados.Client(api_key="sk_lab_...")
 client.ocr(arquivos="pdfs/", saida="out_pdf/")
-client.transcricao(arquivos="audios/", saida="out_audio/", modelo="whisperx", diarizacao=True)
+client.transcricao(arquivos="audios/", saida="out_audio/", diarizacao=True)
 client.test_connection()                # confirma que a key tá ok
 ```
 
@@ -153,7 +158,7 @@ Não precisa de API key — `local=True` já basta.
 - **OCR local** — `pip install labdados[ocr]` + Tesseract no SO
   ([instalador](https://tesseract-ocr.github.io)). No Windows, o SDK
   procura em `C:\Program Files\Tesseract-OCR\tesseract.exe` automaticamente; em outro path, defina `TESSERACT_CMD`.
-- **Transcrição local** — `pip install labdados[transcricao]`. Roda em CPU (lento) ou GPU CUDA (se torch detectar). **Sem diarização local** — para diarizar, use o modo nuvem com `modelo="whisperx"`. O modelo `tiny` vem das releases deste repositório e fica em cache em `~/.cache/labdados/modelos/`; os maiores vêm do Hugging Face. Isso existe porque o HF barra download anônimo vindo de IP de datacenter (Google Colab, CI) pedindo um `HF_TOKEN`. Para forçar o HF em todos, defina `LABDADOS_MODELOS_HF=1`; para trocar a pasta de cache, `LABDADOS_CACHE`. `modelo_local` também aceita o caminho de uma pasta com o modelo já baixado.
+- **Transcrição local** — `pip install labdados[transcricao]`. Roda em CPU (lento) ou GPU CUDA (se torch detectar). **Sem diarização local** — para diarizar, use o modo nuvem (`diarizacao=True`). O modelo `tiny` vem das releases deste repositório e fica em cache em `~/.cache/labdados/modelos/`; os maiores vêm do Hugging Face. Isso existe porque o HF barra download anônimo vindo de IP de datacenter (Google Colab, CI) pedindo um `HF_TOKEN`. Para forçar o HF em todos, defina `LABDADOS_MODELOS_HF=1`; para trocar a pasta de cache, `LABDADOS_CACHE`. `modelo_local` também aceita o caminho de uma pasta com o modelo já baixado.
 - **Estruturação local** — `pip install labdados[estruturacao]`. Espera um servidor OpenAI-compatible no `base_url_local`. Default: [Ollama](https://ollama.com) em `http://localhost:11434/v1`. Funciona também com OpenAI direto, Azure OpenAI (endpoints `*.openai.azure.com` são detectados e chamados pela API v1), vLLM, LM Studio.
 - **Viabilidade** — `pip install labdados[viabilidade]`. Usa juscraper + Datajud direto da sua máquina (precisa de internet). Para gerar PDF, instale o binário do [Quarto](https://quarto.org).
 

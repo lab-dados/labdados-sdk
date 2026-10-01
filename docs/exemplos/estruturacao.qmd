@@ -120,12 +120,34 @@ labdados.estruturacao(
 - **Enums** funcionam bem para classificação:
   `{"type": "string", "enum": ["procedente", "improcedente", "parcial"]}`.
 
+## Modelos na nuvem
+
+Todos rodam no Azure AI Foundry da FGV e passaram no teste de saída
+estruturada. Preços aproximados por 1 milhão de tokens (entrada / saída):
+
+| `modelo` | Tipo | US$ / 1M tokens | Quando usar |
+|---|---|---|---|
+| `gpt-4.1-mini` (padrão) | rápido | 0,40 / 1,60 | Ponto de partida; reprodutível com `temperatura=0` |
+| `gpt-6-luna` | raciocínio | 0,10 / 0,50 | O mais barato; bom em instruções complexas |
+| `gpt-5.6-luna` | raciocínio | 0,20 / 1,20 | Textos longos e extrações difíceis |
+| `gpt-5-mini` | raciocínio | 0,25 / 2,00 | Alternativa compacta da família GPT-5 |
+| `gpt-4.1` | rápido | 2,00 / 8,00 | Mais preciso que o mini, sem raciocínio |
+| `gpt-5.6-terra` | raciocínio | 2,00 / 12,00 | O mais capaz — teste numa amostra antes do volume |
+| `DeepSeek-V4-Flash` | rápido | 0,19 / 0,51 | Modelo aberto, muito barato |
+| `Mistral-Large-3` | rápido | 0,50 / 1,50 | Bom em português |
+| `Kimi-K2.6` | rápido | 0,95 / 4,00 | Contexto longo |
+
+Nos modelos de raciocínio (GPT-5/6) os tokens de raciocínio contam como
+saída e `temperatura` é ignorada. O notebook
+[Todos os modelos na nuvem](nuvem.qmd) roda os nove sobre as mesmas
+ementas e compara as respostas.
+
 ## Parâmetros principais
 
 | Parâmetro | Default | Quando mexer |
 |-----------|---------|--------------|
-| `modelo` | `"gpt-4.1-mini"` | Único modelo nuvem hoje (vLLM A100 descontinuado por custo) |
+| `modelo` | `"gpt-4.1-mini"` | Ver tabela de modelos abaixo |
 | `coluna_texto` | `""` | Nome da coluna do CSV/XLSX que tem o texto |
-| `temperatura` | `0.0` | Mantenha 0 em extração — determinismo |
+| `temperatura` | `0.0` | Mantenha 0 em extração — determinismo (ignorado pelos GPT-5/6) |
 | `max_tokens` | `4096` | Aumente se a saída JSON estiver sendo cortada |
 | `prompt_sistema` | `""` | Sempre escreva — melhora muito a qualidade |

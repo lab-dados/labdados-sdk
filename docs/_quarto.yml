@@ -23,8 +23,12 @@ website:
             text: Transcrição
           - href: exemplos/estruturacao.qmd
             text: Estruturação
+          - href: exemplos/embeddings.qmd
+            text: Embeddings
           - href: exemplos/analise_viabilidade.qmd
             text: Análise de viabilidade
+          - href: exemplos/nuvem.qmd
+            text: Todos os modelos na nuvem (notebook)
       - text: Referência da API
         href: api/index.qmd
   sidebar:
@@ -41,7 +45,9 @@ website:
           - exemplos/ocr.qmd
           - exemplos/transcricao.qmd
           - exemplos/estruturacao.qmd
+          - exemplos/embeddings.qmd
           - exemplos/analise_viabilidade.qmd
+          - exemplos/nuvem.qmd
       - section: "Referência"
         contents:
           - api/index.qmd
@@ -76,6 +82,8 @@ quartodoc:
         - ocr
         - transcricao
         - estruturacao
+        - anonimizacao
+        - embeddings
         - analise_viabilidade
     - title: "Cliente"
       desc: |

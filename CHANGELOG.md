@@ -7,6 +7,19 @@ versionamento seguindo [SemVer](https://semver.org/lang/pt-BR/).
 
 ## [Unreleased]
 
+### Adicionado
+- Notebook `examples/notebooks/nuvem_todos_os_modelos.ipynb` (com badge
+  "Open in Colab") que roda todos os serviços com API key variando os
+  modelos de nuvem: OCR (2), transcrição, estruturação (9), anonimização (2),
+  embeddings (4) e o `Client`.
+- `Client.solicitacoes(limite=50)` — lista as solicitações feitas com a chave.
+- Atalhos `Client.anonimizacao(...)` e `Client.embeddings(...)`.
+
+### Documentação
+- Site: páginas "Embeddings" e "Todos os modelos na nuvem"; exemplos de OCR,
+  transcrição e estruturação atualizados para os modelos do Azure AI Foundry;
+  `anonimizacao` e `embeddings` na referência da API.
+
 ## [0.11.0] - 2026-10-01
 
 ### Adicionado

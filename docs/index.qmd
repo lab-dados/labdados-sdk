@@ -6,20 +6,24 @@ subtitle: "Cliente oficial dos serviços do escritório de apoio do LabDados (FG
 ## O que é
 
 `labdados` é o pacote Python para usar os serviços do **escritório de apoio
-do LabDados** direto de notebooks e scripts. Ele cobre quatro tarefas que
+do LabDados** direto de notebooks e scripts. Ele cobre as tarefas que
 aparecem o tempo todo em pesquisa empírica em direito:
 
 | Função | O que faz | Tempo típico |
 |--------|-----------|--------------|
-| [`labdados.ocr`](api/ocr.qmd) | Extrai texto de PDFs (nativos ou escaneados) | ~5s/página |
-| [`labdados.transcricao`](api/transcricao.qmd) | Transcreve áudio (Whisper) com diarização opcional | ~0.3× duração |
-| [`labdados.estruturacao`](api/estruturacao.qmd) | Extrai campos JSON de textos com LLM | ~2s/documento |
+| [`labdados.ocr`](api/ocr.qmd) | Extrai texto de PDFs (nativos ou escaneados) | ~0,5s/página |
+| [`labdados.transcricao`](api/transcricao.qmd) | Transcreve áudio com diarização opcional | ~1/30 da duração |
+| [`labdados.estruturacao`](api/estruturacao.qmd) | Extrai campos JSON de textos com LLM (9 modelos) | ~2s/documento |
+| [`labdados.anonimizacao`](api/anonimizacao.qmd) | Detecta e mascara dados pessoais | segundos |
+| [`labdados.embeddings`](api/embeddings.qmd) | Transforma textos em vetores (busca semântica, agrupamento) | segundos |
 | [`labdados.analise_viabilidade`](api/analise_viabilidade.qmd) | Estima volume de processos antes de coletar | 30s–5min |
 
 Cada função roda em **dois modos**:
 
-- **Nuvem** (default) — processa na infra do escritório. Rápido em volume
-  alto, GPU disponível, dispensa setup local. Exige uma [API key](api-key.qmd).
+- **Nuvem** (default) — processa na infra do escritório, com os modelos do
+  Azure AI Foundry da FGV. Rápido em volume alto, dispensa setup local.
+  Exige uma [API key](api-key.qmd) (por enquanto, de uso interno da equipe
+  LabDados).
 - **Local** (`local=True`) — processa no próprio computador. Útil para
   testes, dados sensíveis que não saem do laptop, ou quando você não tem
   uma API key ainda.
@@ -67,4 +71,5 @@ Você descreve o uso, a equipe revisa e te envia a chave por e-mail
 - [Primeiros passos](getting-started.qmd) — instalação, autenticação, primeira chamada.
 - [Modo local](modo-local.qmd) — quando usar e o que cada extra precisa.
 - [Exemplos práticos](exemplos/ocr.qmd) — receitas para cada serviço, prontas pra colar.
+- [Todos os modelos na nuvem](exemplos/nuvem.qmd) — um notebook (abre no Colab) que roda cada serviço com cada modelo.
 - [Referência da API](api/index.qmd) — todos os parâmetros de cada função.

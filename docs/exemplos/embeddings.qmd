@@ -1,0 +1,84 @@
+---
+title: "Embeddings de textos"
+---
+
+[`labdados.embeddings`](../api/embeddings.qmd) transforma cada texto em um
+vetor numérico. Textos de sentido parecido ficam com vetores próximos — base
+para **busca semântica**, **agrupamento** e **classificação**. Aceita `.txt`,
+`.md`, `.docx`, `.csv` e `.xlsx` (em CSV/XLSX, cada linha vira um documento).
+
+## Receita 1 — Planilha de ementas, na nuvem
+
+```{.python}
+import os
+import labdados
+
+df = labdados.embeddings(
+    "ementas.csv",
+    coluna_texto="ementa",
+    api_key=os.environ["LABDADOS_API_KEY"],
+    modelo="text-embedding-3-small",   # padrão, o mais barato
+    saida="vetores/",
+    dataframe=True,
+)
+df[["arquivo", "doc_id", "chunk", "texto"]].head()
+# vetores/embeddings.parquet, vetores/chunks.csv, vetores/_reproducibilidade/
+```
+
+Textos longos são cortados em trechos de até `max_chars` caracteres (padrão
+2.000, ~500 tokens), com `sobreposicao` caracteres repetidos entre trechos
+vizinhos. Cada trecho vira uma linha do parquet.
+
+## Receita 2 — Busca semântica
+
+```{.python}
+import numpy as np
+
+v = np.array(df["embedding"].tolist())
+v /= np.linalg.norm(v, axis=1, keepdims=True)
+
+consulta = labdados.embeddings("consulta.txt", dataframe=True)  # mesmo modelo!
+q = np.array(consulta["embedding"][0])
+q /= np.linalg.norm(q)
+
+df["similaridade"] = v @ q
+df.sort_values("similaridade", ascending=False).head(5)[["doc_id", "texto", "similaridade"]]
+```
+
+::: {.callout-warning}
+Use sempre o **mesmo modelo** para os textos que serão comparados — vetores de
+modelos diferentes não são comparáveis.
+:::
+
+## Receita 3 — Local, sem API key
+
+```{.bash}
+pip install "labdados[embeddings-local]"
+```
+
+```{.python}
+df = labdados.embeddings("textos/", local=True, dataframe=True)
+# sentence-transformers/paraphrase-multilingual-MiniLM-L12-v2 (384 dims, CPU)
+```
+
+Também dá para usar um servidor OpenAI-compatível (Ollama, OpenAI, Azure) com
+`base_url_local` e `modelo_local`.
+
+## Modelos na nuvem
+
+| `modelo` | Dimensões | US$ / 1M tokens | Observação |
+|---|---|---|---|
+| `text-embedding-3-small` (padrão) | 1536 | 0,02 | Barato e bom para busca |
+| `text-embedding-3-large` | 3072 | 0,13 | Mais preciso, vetores maiores |
+| `embed-v-4-0` | 1536 | 0,12 | Cohere, multilíngue, aceita textos longos |
+| `Cohere-embed-v3-multilingual` | 1024 | 0,10 | Cohere, multilíngue (trechos de até ~512 tokens) |
+
+## Parâmetros principais
+
+| Parâmetro | Default | Quando mexer |
+|-----------|---------|--------------|
+| `modelo` | `"text-embedding-3-small"` | Ver tabela acima |
+| `coluna_texto` | `""` | Nome da coluna do CSV/XLSX com o texto |
+| `max_chars` | `2000` | Trechos maiores para documentos curtos e coesos |
+| `sobreposicao` | `200` | `0` para trechos independentes |
+| `dataframe` | `False` | `True` para receber um `pandas.DataFrame` |

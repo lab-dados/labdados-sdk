@@ -15,7 +15,7 @@ necessária.
 | Volume pequeno (~10 documentos) onde subir é custoso | Local |
 | Volume grande, vários PDFs/áudios | Nuvem |
 | Modelos pesados (Whisper Large, GPT-4) sem GPU local | Nuvem |
-| Diarização de áudio (separar falantes) | Nuvem (WhisperX) |
+| Diarização de áudio (separar falantes) | Nuvem (Azure Speech) |
 
 ## Extras opcionais
 
@@ -70,7 +70,7 @@ labdados.transcricao(
 ::: {.callout-note}
 Diarização local não está incluída no extra `[transcricao]` — pyannote
 tem dependências pesadas e exige token HuggingFace. Para diarização use
-modo nuvem com `modelo="whisperx"`.
+modo nuvem (`diarizacao=True`).
 :::
 
 ### Estruturação local
@@ -96,18 +96,33 @@ labdados.estruturacao(
 )
 ```
 
-Para Azure OpenAI (chave do usuário):
+Para um recurso Azure OpenAI / Azure AI Foundry (chave do usuário), passe o
+endpoint do recurso — o SDK detecta `*.openai.azure.com` e usa a API v1.
+`modelo_local` é o nome do *deployment*; em modelos de raciocínio (GPT-5/6)
+use `temperatura=None`:
 
 ```{.python}
 labdados.estruturacao(
     arquivos="textos/",
     schema={...},
     local=True,
-    base_url_local="https://meu-resource.openai.azure.com/openai/deployments/gpt-4.1-mini",
+    base_url_local="https://meu-recurso.openai.azure.com/",
     api_key_local="<sua chave da Azure>",
     modelo_local="gpt-4.1-mini",
 )
 ```
+
+### Embeddings locais
+
+Com `pip install labdados[embeddings-local]`, roda sentence-transformers
+(modelo multilíngue pequeno, CPU) sem enviar nada para fora:
+
+```{.python}
+df = labdados.embeddings("textos/", local=True, dataframe=True)
+```
+
+Ou aponte para um servidor OpenAI-compatível (Ollama, OpenAI, Azure) com
+`base_url_local` + `modelo_local`.
 
 ### Análise de viabilidade local
 
@@ -130,8 +145,8 @@ print(ana["results"]["verdict"])  # "viable" | "caveats" | "unviable"
 
 ## Quando o local fica lento
 
-- Tesseract em PDFs grandes (>500 páginas): considere o modo nuvem com
-  PaddleOCR.
-- Whisper `large-v3` em CPU em áudios longos (>1h): use o modo nuvem com
-  `whisperx` (GPU T4 do escritório).
+- Tesseract em PDFs grandes (>500 páginas): considere o modo nuvem
+  (Azure Document Intelligence).
+- Whisper `large-v3` em CPU em áudios longos (>1h): use o modo nuvem
+  (Azure Speech, ~30x mais rápido que tempo real).
 - LLM local com poucos recursos: use o modo nuvem com `gpt-4.1-mini`.

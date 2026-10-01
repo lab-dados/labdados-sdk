@@ -2,8 +2,9 @@
 
 Modo nuvem (default)
 --------------------
-Faz upload dos PDFs, dispara o OCR no escritório (PyMuPDF+Tesseract ou
-PaddleOCR), espera concluir e baixa o resultado (.zip) na pasta ``saida``.
+Faz upload dos PDFs, dispara o OCR no escritório — Azure Document
+Intelligence (default) ou Mistral OCR, no Azure AI Foundry da FGV —, espera
+concluir e baixa o resultado (.zip) na pasta ``saida``.
 
 Modo local (``local=True``)
 ---------------------------
@@ -26,7 +27,10 @@ from labdados.client import Client
 from labdados.exceptions import LocalDependencyMissing
 
 OUTPUT_FORMAT = Literal["txt", "md"]
-MODELO_NUVEM = Literal["pymupdf-tesseract", "paddleocr"]
+MODELO_NUVEM = Literal["azure-document-intelligence", "mistral-ocr", "pymupdf-tesseract", "paddleocr"]
+# Default por modo quando ``modelo=None``.
+MODELO_PADRAO_NUVEM = "azure-document-intelligence"
+MODELO_PADRAO_LOCAL = "pymupdf-tesseract"
 ACCEPTED_EXTENSIONS = (".pdf",)
 
 
@@ -35,7 +39,7 @@ def ocr(
     *,
     saida: PathLike | None = None,
     api_key: str | None = None,
-    modelo: str = "pymupdf-tesseract",
+    modelo: str | None = None,
     formato: OUTPUT_FORMAT = "txt",
     idiomas: str = "por+eng",
     dpi: int = 200,
@@ -60,9 +64,11 @@ def ocr(
         Chave de API (apenas para modo nuvem). Peça uma no portal,
         em ``/consultoria/api-key``.
     modelo
-        ``"pymupdf-tesseract"`` (default — leve, CPU) ou ``"paddleocr"``
-        (mais preciso em layouts complexos, GPU). PaddleOCR só está
-        disponível no modo nuvem.
+        Modo nuvem (Azure AI Foundry da FGV): ``"azure-document-intelligence"``
+        (default — processamento no Brasil) ou ``"mistral-ocr"`` (markdown,
+        preserva tabelas). ``"pymupdf-tesseract"`` e ``"paddleocr"`` ainda
+        são aceitos na nuvem enquanto os servidores próprios não forem
+        desligados. Modo local: só ``"pymupdf-tesseract"`` (default).
     formato
         Formato do texto extraído: ``"txt"`` (default) ou ``"md"``.
     idiomas
@@ -107,10 +113,11 @@ def ocr(
     saida_dir = ensure_output_dir(saida)
 
     if local:
+        modelo = modelo or MODELO_PADRAO_LOCAL
         if modelo != "pymupdf-tesseract":
             raise ValueError(
                 "No modo local, OCR suporta apenas modelo='pymupdf-tesseract'. "
-                "Use local=False para modelo='paddleocr'."
+                f"Use local=False para modelo={modelo!r}."
             )
         saida_dir, produzidos = _ocr_local(
             pdfs,
@@ -127,7 +134,7 @@ def ocr(
             saida_dir=saida_dir,
             api_key=api_key,
             client=client,
-            modelo=modelo,
+            modelo=modelo or MODELO_PADRAO_NUVEM,
             formato=formato,
             idiomas=idiomas,
             dpi=dpi,

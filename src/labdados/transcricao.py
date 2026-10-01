@@ -3,8 +3,9 @@ Transcrição de áudio com Whisper (e opcionalmente diarização com pyannote).
 
 Modo nuvem
 ----------
-Whisper Large V3 Turbo (rápido) ou WhisperX (timestamps a nível de palavra
-+ diarização integrada).
+Azure Speech no Azure AI Foundry da FGV (default; diarização opcional,
+processamento no Brasil). Whisper Large V3 Turbo e WhisperX ainda são
+aceitos enquanto os servidores GPU próprios não forem desligados.
 
 Modo local
 ----------
@@ -25,7 +26,8 @@ from labdados.client import Client
 from labdados.exceptions import LocalDependencyMissing
 
 OUTPUT_FORMAT = Literal["txt", "srt", "vtt"]
-MODELO_NUVEM = Literal["whisper-large-v3-turbo", "whisperx"]
+MODELO_NUVEM = Literal["azure-speech", "whisper-large-v3-turbo", "whisperx"]
+MODELO_PADRAO_NUVEM = "azure-speech"
 ACCEPTED_EXTENSIONS = (".mp3", ".wav", ".m4a", ".ogg", ".flac", ".wma")
 
 
@@ -34,7 +36,7 @@ def transcricao(
     *,
     saida: PathLike | None = None,
     api_key: str | None = None,
-    modelo: str = "whisper-large-v3-turbo",
+    modelo: str = MODELO_PADRAO_NUVEM,
     idioma: str = "pt",
     diarizacao: bool = False,
     num_falantes: int = 0,
@@ -58,13 +60,15 @@ def transcricao(
     api_key
         Chave de API (modo nuvem).
     modelo
-        Modelo na nuvem: ``"whisper-large-v3-turbo"`` (rápido) ou
-        ``"whisperx"`` (timestamps + diarização).
+        Modelo na nuvem: ``"azure-speech"`` (default — Azure AI Foundry da
+        FGV, processamento no Brasil, com diarização). ``"whisper-large-v3-turbo"``
+        e ``"whisperx"`` ainda são aceitos enquanto os servidores GPU próprios
+        não forem desligados. Ignorado com ``local=True`` (use ``modelo_local``).
     idioma
         ISO 639-1 ou ``"auto"``. Default: português.
     diarizacao
         Se ``True``, separa falantes (``SPEAKER_00``, ``SPEAKER_01``...).
-        Requer ``modelo="whisperx"`` na nuvem.
+        Na nuvem, funciona com ``"azure-speech"`` e ``"whisperx"``.
     num_falantes
         Estimativa de quantas pessoas falam (``0`` = detectar). Só vale
         com ``diarizacao=True``.
@@ -111,7 +115,6 @@ def transcricao(
     >>> labdados.transcricao(
     ...     arquivos="audios/",
     ...     api_key="sk_lab_...",
-    ...     modelo="whisperx",
     ...     diarizacao=True,
     ...     formato="srt",
     ... )
@@ -129,7 +132,7 @@ def transcricao(
     # erros de assinatura aparecem instantaneamente.
     if not local and diarizacao and modelo == "whisper-large-v3-turbo":
         raise ValueError(
-            "Diarização requer modelo='whisperx'. O whisper-large-v3-turbo "
+            "Diarização requer modelo='azure-speech' ou 'whisperx'. O whisper-large-v3-turbo "
             "não tem pipeline de diarização."
         )
 

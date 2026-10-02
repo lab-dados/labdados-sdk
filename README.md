@@ -8,6 +8,10 @@ Quatro funções de alto nível, em português, que cobrem os serviços do escri
 - `labdados.transcricao(...)` — transcrição (Whisper) e diarização de áudio.
 - `labdados.estruturacao(...)` — extração estruturada de campos com LLMs.
 - `labdados.embeddings(...)` — vetores de textos para busca semântica e agrupamento.
+
+Todos os serviços de nuvem, com cada modelo, num notebook só:
+[![Open In Colab](https://colab.research.google.com/assets/colab-badge.svg)](https://colab.research.google.com/github/lab-dados/labdados-sdk/blob/main/examples/notebooks/nuvem_todos_os_modelos.ipynb)
+([`examples/notebooks/nuvem_todos_os_modelos.ipynb`](examples/notebooks/nuvem_todos_os_modelos.ipynb)) · Documentação: <https://lab-dados.github.io/labdados-sdk/>
 - `labdados.analise_viabilidade(...)` — estima volume de processos antes de uma raspagem.
 
 ## Como usar — três modos

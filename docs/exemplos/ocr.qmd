@@ -34,25 +34,27 @@ Extraia o `.zip` no mesmo lugar:
 cd acordaos_txt && unzip ocr_*.zip
 ```
 
-## Receita 2 — PDFs com layout complexo (PaddleOCR na nuvem)
+Na nuvem, o modelo padrão é o **Azure Document Intelligence** (OCR da
+Microsoft no Azure AI Foundry da FGV). O processamento fica no Brasil.
 
-Quando o documento tem várias colunas, formulários ou tabelas, o Tesseract
-costuma errar. PaddleOCR (GPU) sai melhor:
+## Receita 2 — PDFs com tabelas e layout complexo (Mistral OCR)
+
+Quando o documento tem várias colunas, formulários ou tabelas, o
+**Mistral OCR** devolve markdown e preserva a estrutura:
 
 ```{.python}
 labdados.ocr(
-    arquivos="petipoes/",
+    arquivos="peticoes/",
     api_key=os.environ["LABDADOS_API_KEY"],
-    saida="petipoes_txt/",
-    modelo="paddleocr",          # roda em GPU T4 no escritório
-    dpi=300,
+    saida="peticoes_md/",
+    modelo="mistral-ocr",
+    formato="md",
 )
 ```
 
 ::: {.callout-note}
-PaddleOCR tem **cold start** de ~30s na primeira chamada após ociosidade
-(o container GPU precisa subir). Não se preocupe se o spinner ficar
-parado nesse intervalo.
+A primeira chamada depois de um tempo sem uso pode levar alguns minutos (o
+serviço do escritório "acorda"). As seguintes são rápidas.
 :::
 
 ## Receita 3 — Local, sem API key
@@ -121,7 +123,7 @@ Veja a [referência completa](../api/ocr.qmd) para todos os argumentos.
 
 | Parâmetro | Default | Quando mexer |
 |-----------|---------|--------------|
-| `modelo` | `"pymupdf-tesseract"` | `"paddleocr"` para layouts complexos |
+| `modelo` | `"azure-document-intelligence"` (nuvem) / `"pymupdf-tesseract"` (local) | `"mistral-ocr"` para tabelas e layouts complexos |
 | `formato` | `"txt"` | `"md"` se quiser preservar listas/títulos |
 | `idiomas` | `"por+eng"` | Para outros idiomas, ver lista do Tesseract |
 | `dpi` | `200` | `300` para scans pequenos / `150` para PDFs grandes |

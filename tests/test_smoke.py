@@ -370,3 +370,21 @@ def test_defaults_de_modelo_nuvem_sao_do_foundry():
     assert inspect.signature(labdados.ocr).parameters["modelo"].default is None
     assert "gpt-6-luna" in get_args(EST) and len(get_args(EST)) == 9
 
+
+
+@respx.mock
+def test_client_solicitacoes_lista_com_limite():
+    from labdados.client import PUBLIC_BASE_URL as base
+
+    route = respx.get(f"{base}/api/v1/requests").mock(
+        return_value=httpx.Response(200, json=[{"id": "r1", "service_id": "ocr", "status": "COMPLETED"}])
+    )
+    out = labdados.Client(api_key="sk_lab_x", progress=False).solicitacoes(limite=5)
+    assert out == [{"id": "r1", "service_id": "ocr", "status": "COMPLETED"}]
+    assert route.calls.last.request.url.params["limit"] == "5"
+
+
+def test_client_tem_atalhos_de_todos_os_servicos_de_nuvem():
+    c = labdados.Client(api_key="sk_lab_x", progress=False)
+    for nome in ("ocr", "transcricao", "estruturacao", "anonimizacao", "embeddings", "solicitacoes"):
+        assert callable(getattr(c, nome))

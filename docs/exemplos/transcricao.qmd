@@ -6,9 +6,10 @@ title: "Transcrição de áudio"
 
 > Versão notebook (rodável no Colab): [`examples/notebooks/transcricao.ipynb`](https://github.com/lab-dados/labdados-sdk/blob/main/examples/notebooks/transcricao.ipynb).
 
-[`labdados.transcricao`](../api/transcricao.qmd) usa Whisper (Large V3 Turbo
-ou WhisperX) para transformar áudio em texto. Suporta `.mp3`, `.wav`,
-`.m4a`, `.ogg`, `.flac`, `.wma`.
+[`labdados.transcricao`](../api/transcricao.qmd) transforma áudio em texto.
+Na nuvem usa o **Azure Speech** (Azure AI Foundry da FGV, processamento no
+Brasil, com diarização); no modo local, o `faster-whisper`. Suporta `.mp3`,
+`.wav`, `.m4a`, `.ogg`, `.flac`, `.wma`.
 
 ## Receita 1 — Entrevista única, na nuvem
 
@@ -27,15 +28,14 @@ labdados.transcricao(
 
 ## Receita 2 — Audiência com vários falantes (diarização)
 
-Diarização separa **quem falou o quê**. Exige modelo WhisperX (sem ele,
-o SDK levanta `ValueError` cedo):
+Diarização separa **quem falou o quê**. O modelo padrão da nuvem
+(`azure-speech`) já faz isso:
 
 ```{.python}
 labdados.transcricao(
     arquivos="audiencia.mp3",
     api_key=os.environ["LABDADOS_API_KEY"],
     saida="transcricoes/",
-    modelo="whisperx",
     diarizacao=True,
     num_falantes=4,                 # juiz + procurador + 2 testemunhas
     formato="srt",
@@ -98,7 +98,8 @@ labdados.transcricao(
 )
 ```
 
-Use `"auto"` quando o idioma não é conhecido — o Whisper tenta detectar.
+Use `"auto"` quando o idioma não é conhecido — o serviço detecta entre
+português, inglês e espanhol.
 
 ## Quando o áudio é muito longo
 
@@ -115,7 +116,7 @@ labdados.transcricao(
     arquivos="parte_00.mp3 parte_01.mp3 parte_02.mp3".split(),
     api_key=os.environ["LABDADOS_API_KEY"],
     saida="resultados/",
-    modelo="whisperx",              # usar diarização integrada por arquivo
+    diarizacao=True,                # diarização por arquivo
 )
 ```
 
@@ -123,9 +124,9 @@ labdados.transcricao(
 
 | Parâmetro | Default | Quando mexer |
 |-----------|---------|--------------|
-| `modelo` | `"whisper-large-v3-turbo"` | `"whisperx"` para diarização ou timestamps por palavra |
+| `modelo` | `"azure-speech"` | — (único modelo de nuvem recomendado; no local use `modelo_local`) |
 | `idioma` | `"pt"` | Outros idiomas (ISO 639-1) ou `"auto"` |
-| `diarizacao` | `False` | `True` (exige `whisperx`) |
+| `diarizacao` | `False` | `True` para separar falantes |
 | `num_falantes` | `0` (auto) | Quando você sabe quantas pessoas falam |
 | `formato` | `"srt"` | `"txt"` para texto corrido, `"vtt"` para web |
 | `timestamps` | `True` | `False` no `txt` para suprimir `[hh:mm:ss]` |

@@ -77,7 +77,7 @@ import labdados
 client = labdados.Client(api_key="sk_lab_seu_token_aqui")
 
 client.ocr(arquivos="pdfs/", saida="out_pdf/")
-client.transcricao(arquivos="audios/", saida="out_audio/", modelo="whisperx", diarizacao=True)
+client.transcricao(arquivos="audios/", saida="out_audio/", diarizacao=True)
 client.estruturacao(
     arquivos="textos.csv",
     coluna_texto="ementa",

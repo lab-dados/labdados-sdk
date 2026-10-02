@@ -143,6 +143,15 @@ class Client:
         """Confirma que a API key é válida. Retorna metadados da chave."""
         return self._get("/api/v1/whoami")
 
+    def solicitacoes(self, limite: int = 50) -> list[dict[str, Any]]:
+        """Lista as solicitações feitas com esta API key, da mais recente para a mais antiga.
+
+        Cada item traz ``id``, ``service_id``, ``model_id``, ``status``,
+        ``created_at`` etc. — as mesmas que aparecem em "Minhas
+        solicitações" no portal. ``limite`` vai de 1 a 200.
+        """
+        return self._get(f"/api/v1/requests?limit={limite}")  # type: ignore[return-value]
+
     # ------------------------------------------------------------------
     # Upload via SAS URL
     # ------------------------------------------------------------------
@@ -320,6 +329,18 @@ class Client:
 
     def estruturacao(self, **kwargs: Any) -> Any:
         from labdados.estruturacao import estruturacao as _f
+
+        kwargs.setdefault("client", self)
+        return _f(**kwargs)
+
+    def anonimizacao(self, **kwargs: Any) -> Any:
+        from labdados.anonimizacao import anonimizacao as _f
+
+        kwargs.setdefault("client", self)
+        return _f(**kwargs)
+
+    def embeddings(self, **kwargs: Any) -> Any:
+        from labdados.embeddings import embeddings as _f
 
         kwargs.setdefault("client", self)
         return _f(**kwargs)

@@ -1,0 +1,64 @@
+---
+title: "Todos os modelos na nuvem"
+---
+
+[![Open In Colab](https://colab.research.google.com/assets/colab-badge.svg)](https://colab.research.google.com/github/lab-dados/labdados-sdk/blob/main/examples/notebooks/nuvem_todos_os_modelos.ipynb)
+
+> Versão notebook (rodável no Colab): [`examples/notebooks/nuvem_todos_os_modelos.ipynb`](https://github.com/lab-dados/labdados-sdk/blob/main/examples/notebooks/nuvem_todos_os_modelos.ipynb).
+
+Um notebook único com **todos os exemplos que usam a API key do escritório**,
+variando os modelos disponíveis na nuvem. Os modelos rodam no Azure AI Foundry
+da FGV, chamados pelo escritório — você só precisa da sua chave `sk_lab_...`
+([como pedir](../api-key.qmd)).
+
+::: {.callout-note}
+Por enquanto as API keys são de uso interno da equipe LabDados. A ideia é
+abrir para a comunidade no futuro.
+:::
+
+| Função | Modelos na nuvem |
+|---|---|
+| [`ocr`](../api/ocr.qmd) | `azure-document-intelligence` (padrão, processamento no Brasil), `mistral-ocr` (markdown, preserva tabelas) |
+| [`transcricao`](../api/transcricao.qmd) | `azure-speech` (padrão, com diarização, processamento no Brasil) |
+| [`estruturacao`](../api/estruturacao.qmd) | `gpt-4.1-mini` (padrão), `gpt-4.1`, `gpt-5-mini`, `gpt-5.6-luna`, `gpt-5.6-terra`, `gpt-6-luna`, `DeepSeek-V4-Flash`, `Mistral-Large-3`, `Kimi-K2.6` |
+| [`anonimizacao`](../api/anonimizacao.qmd) | `privacy-filter` (padrão), `lenerbr` |
+| [`embeddings`](../api/embeddings.qmd) | `text-embedding-3-small` (padrão), `text-embedding-3-large`, `embed-v-4-0`, `Cohere-embed-v3-multilingual` |
+| [`Client`](../api/Client.qmd) | `test_connection()`, `solicitacoes()` e atalhos para todos os serviços acima |
+
+## O que o notebook faz
+
+1. Instala o SDK e pede a chave (`getpass`, ou os *Secrets* do Colab).
+2. Baixa um PDF e um áudio públicos e gera uma planilha de ementas fictícias.
+3. **OCR** com os dois modelos, mostrando o começo do texto de cada um.
+4. **Transcrição** com diarização (`SPEAKER_00`, `SPEAKER_01`...).
+5. **Estruturação** com os nove modelos sobre as mesmas ementas, numa tabela
+   de comparação.
+6. **Anonimização** com os dois detectores.
+7. **Embeddings** com os quatro modelos, com a similaridade entre as ementas.
+8. **Cliente**: confere a chave e lista suas solicitações.
+
+Cada célula é auto-suficiente — dá para rodar só a seção que interessa.
+
+## Exemplo rápido
+
+```{.python}
+import os
+import labdados
+
+os.environ["LABDADOS_API_KEY"] = "sk_lab_..."
+
+texto = labdados.ocr("pdfs/", modelo="mistral-ocr", formato="md", text=True)
+srt = labdados.transcricao("audiencia.mp3", diarizacao=True, text=True)
+labdados.estruturacao("ementas.csv", coluna_texto="ementa", schema={...}, modelo="gpt-6-luna")
+df = labdados.embeddings("ementas.csv", coluna_texto="ementa", dataframe=True)
+
+client = labdados.Client()
+client.solicitacoes(limite=10)
+```
+
+::: {.callout-tip}
+## Custo
+Cada chamada consome o orçamento do LabDados. Os exemplos do notebook usam
+arquivos pequenos (centavos no total). Em volume, teste antes numa amostra —
+principalmente com `gpt-5.6-terra` e `gpt-4.1`, os mais caros da lista.
+:::

@@ -2,24 +2,21 @@
 
 Modo nuvem (default)
 --------------------
-Faz upload dos textos e dispara a anonimização no escritório. Dois
-modelos disponíveis:
-
-- ``"privacy-filter"`` — `openai/privacy-filter
-  <https://huggingface.co/openai/privacy-filter>`_, multilíngue, 8
-  categorias (nome, e-mail, telefone, endereço, URL, conta, data,
-  segredos). Estado-da-arte no benchmark PII-Masking-300k.
-- ``"lenerbr"`` — `pierreguillou/ner-bert-base-cased-pt-lenerbr
-  <https://huggingface.co/pierreguillou/ner-bert-base-cased-pt-lenerbr>`_,
-  BERT base PT-BR fine-tuned em LeNER-Br (decisões judiciais
-  brasileiras). 6 categorias (PESSOA, ORGANIZACAO, LOCAL, TEMPO,
-  LEGISLACAO, JURISPRUDENCIA). Mais leve e mais rápido — escolha
-  quando estiver lidando especificamente com texto jurídico em PT-BR.
+Faz upload dos textos e dispara a anonimização no escritório com o
+``"lenerbr"`` — `pierreguillou/ner-bert-base-cased-pt-lenerbr
+<https://huggingface.co/pierreguillou/ner-bert-base-cased-pt-lenerbr>`_,
+BERT base PT-BR fine-tuned em LeNER-Br (decisões judiciais brasileiras),
+6 categorias (PESSOA, ORGANIZACAO, LOCAL, TEMPO, LEGISLACAO,
+JURISPRUDENCIA). O escritório roda só em CPU, e o ``"privacy-filter"``
+(1,5B params) não cabe lá.
 
 Modo local (``local=True``)
 ---------------------------
 Roda o mesmo pipeline (``labdados_core.anonimizacao``) na sua máquina
-via HF Transformers. Precisa do extra ``pip install
+via HF Transformers, com ``"privacy-filter"`` (default — `openai/privacy-filter
+<https://huggingface.co/openai/privacy-filter>`_, multilíngue, 8 categorias:
+nome, e-mail, telefone, endereço, URL, conta, data, segredos) ou
+``"lenerbr"``. Precisa do extra ``pip install
 labdados[anonimizacao]`` (puxa torch + transformers de CPU). O primeiro
 uso baixa os pesos do HuggingFace (~3 GB do privacy-filter ou ~440 MB
 do lenerbr).
@@ -42,7 +39,9 @@ from labdados._io import PathLike, ensure_output_dir, resolve_inputs
 from labdados.client import Client
 from labdados.exceptions import LocalDependencyMissing
 
-MODELO_NUVEM = Literal["privacy-filter", "lenerbr"]
+MODELO_NUVEM = Literal["lenerbr"]
+MODELO_PADRAO_NUVEM = "lenerbr"
+MODELO_PADRAO_LOCAL = "privacy-filter"
 ESTRATEGIA = Literal["categoria", "asteriscos", "pseudonimo"]
 ACCEPTED_EXTENSIONS = (".txt", ".md", ".docx", ".csv", ".xlsx")
 
@@ -52,7 +51,7 @@ def anonimizacao(
     *,
     saida: PathLike | None = None,
     api_key: str | None = None,
-    modelo: str = "privacy-filter",
+    modelo: str | None = None,
     estrategia: ESTRATEGIA = "categoria",
     coluna_texto: str = "",
     local: bool = False,
@@ -75,11 +74,10 @@ def anonimizacao(
     api_key
         Chave de API do escritório (modo nuvem).
     modelo
-        ``"privacy-filter"`` (default — multilíngue, 8 categorias PII) ou
-        ``"lenerbr"`` (PT-BR jurídico, 6 categorias incluindo
-        legislação/jurisprudência citadas). Só vale no modo nuvem; no
-        local, o modelo é o mesmo HF identifier passado direto pra
-        ``labdados_core``.
+        Modo nuvem: ``"lenerbr"`` (único, e o default — PT-BR jurídico, 6
+        categorias incluindo legislação/jurisprudência citadas). Modo
+        local: ``"privacy-filter"`` (default — multilíngue, 8 categorias
+        PII), ``"lenerbr"`` ou um identificador do HuggingFace.
     estrategia
         Como mascarar: ``"categoria"`` (default — substitui por
         ``[PESSOA]``, ``[EMAIL]``, etc.), ``"asteriscos"`` (preserva
@@ -128,6 +126,14 @@ def anonimizacao(
     ...     modelo="privacy-filter",
     ... )
     """
+    if not local:
+        modelo = modelo or MODELO_PADRAO_NUVEM
+        if modelo != MODELO_PADRAO_NUVEM:
+            raise ValueError(
+                f"modelo={modelo!r} não roda na nuvem do escritório (só 'lenerbr'). "
+                "Use local=True para rodar na sua máquina."
+            )
+
     docs = resolve_inputs(arquivos, extensoes=ACCEPTED_EXTENSIONS)
     saida_dir = ensure_output_dir(saida)
 
@@ -135,7 +141,7 @@ def anonimizacao(
         return _anon_local(
             docs,
             saida_dir=saida_dir,
-            modelo=modelo,
+            modelo=modelo or MODELO_PADRAO_LOCAL,
             estrategia=estrategia,
             coluna_texto=coluna_texto,
             use_gpu=use_gpu,

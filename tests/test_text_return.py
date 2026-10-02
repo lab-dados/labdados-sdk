@@ -133,7 +133,7 @@ def test_nuvem_com_text_devolve_o_texto_de_dentro_do_zip(tmp_path: Path):
         arquivos=pdf,
         api_key="sk_lab_test",
         saida=saida,
-        modelo="pymupdf-tesseract",
+        modelo="azure-document-intelligence",
         text=True,
         progress=False,
     )

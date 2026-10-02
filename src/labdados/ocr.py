@@ -27,7 +27,7 @@ from labdados.client import Client
 from labdados.exceptions import LocalDependencyMissing
 
 OUTPUT_FORMAT = Literal["txt", "md"]
-MODELO_NUVEM = Literal["azure-document-intelligence", "mistral-ocr", "pymupdf-tesseract", "paddleocr"]
+MODELO_NUVEM = Literal["azure-document-intelligence", "mistral-ocr"]
 # Default por modo quando ``modelo=None``.
 MODELO_PADRAO_NUVEM = "azure-document-intelligence"
 MODELO_PADRAO_LOCAL = "pymupdf-tesseract"
@@ -66,9 +66,8 @@ def ocr(
     modelo
         Modo nuvem (Azure AI Foundry da FGV): ``"azure-document-intelligence"``
         (default — processamento no Brasil) ou ``"mistral-ocr"`` (markdown,
-        preserva tabelas). ``"pymupdf-tesseract"`` e ``"paddleocr"`` ainda
-        são aceitos na nuvem enquanto os servidores próprios não forem
-        desligados. Modo local: só ``"pymupdf-tesseract"`` (default).
+        preserva tabelas). Modo local: ``"pymupdf-tesseract"`` (default e
+        único).
     formato
         Formato do texto extraído: ``"txt"`` (default) ou ``"md"``.
     idiomas
@@ -109,6 +108,12 @@ def ocr(
 
     >>> labdados.ocr(arquivos=["a.pdf", "b.pdf"], local=True)
     """
+    if not local and modelo is not None and modelo not in ("azure-document-intelligence", "mistral-ocr"):
+        raise ValueError(
+            f"modelo={modelo!r} não roda na nuvem do escritório (use 'azure-document-intelligence' "
+            "ou 'mistral-ocr'). Para Tesseract na sua máquina, use local=True."
+        )
+
     pdfs = resolve_inputs(arquivos, extensoes=ACCEPTED_EXTENSIONS)
     saida_dir = ensure_output_dir(saida)
 

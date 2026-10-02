@@ -192,7 +192,7 @@ def test_ocr_remote_full_flow(tmp_path: Path):
         arquivos=pdf,
         api_key="sk_lab_test",
         saida=saida,
-        modelo="pymupdf-tesseract",
+        modelo="azure-document-intelligence",
         progress=False,
     )
     assert out == saida
@@ -278,15 +278,27 @@ def test_test_connection_returns_metadata():
     assert info["email"] == "user@fgv.br"
 
 
-def test_diarization_validation():
-    """Diarização exige azure-speech ou WhisperX — falha cedo no SDK."""
-    with pytest.raises(ValueError, match="azure-speech"):
-        labdados.transcricao(
-            arquivos=Path("ignored"),  # nem chega a tocar no arquivo
-            api_key="sk_lab_x",
-            modelo="whisper-large-v3-turbo",
-            diarizacao=True,
-        )
+@pytest.mark.parametrize(
+    ("funcao", "kwargs", "msg"),
+    [
+        ("ocr", {"modelo": "paddleocr"}, "local=True"),
+        ("ocr", {"modelo": "pymupdf-tesseract"}, "local=True"),
+        ("transcricao", {"modelo": "whisperx", "diarizacao": True}, "local=True"),
+        ("anonimizacao", {"modelo": "privacy-filter"}, "local=True"),
+    ],
+)
+def test_modelo_local_na_nuvem_falha_cedo(funcao, kwargs, msg):
+    """A nuvem do escritório não tem GPU: engines locais só com local=True.
+    A validação vem antes de tocar no arquivo ou na rede."""
+    with pytest.raises(ValueError, match=msg):
+        getattr(labdados, funcao)(arquivos=Path("ignored"), api_key="sk_lab_x", **kwargs)
+
+
+def test_defaults_de_modelo_por_modo():
+    from labdados.anonimizacao import MODELO_PADRAO_LOCAL, MODELO_PADRAO_NUVEM
+
+    assert MODELO_PADRAO_NUVEM == "lenerbr"
+    assert MODELO_PADRAO_LOCAL == "privacy-filter"
 
 
 @respx.mock

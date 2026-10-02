@@ -7,6 +7,17 @@ versionamento seguindo [SemVer](https://semver.org/lang/pt-BR/).
 
 ## [Unreleased]
 
+## [0.12.0] - 2026-10-02
+
+### Alterado (incompatível)
+- **A nuvem do escritório não usa mais GPU.** Modelos aceitos com
+  `local=False`: OCR `azure-document-intelligence` (padrão) e
+  `mistral-ocr`; transcrição `azure-speech`; anonimização `lenerbr`.
+  Pedir `pymupdf-tesseract`, `paddleocr`, `whisper-large-v3-turbo`,
+  `whisperx` ou `privacy-filter` na nuvem levanta `ValueError` antes de
+  qualquer upload, sugerindo `local=True`.
+- `anonimizacao(modelo=None)`: `lenerbr` na nuvem, `privacy-filter` no local.
+
 ### Corrigido
 - Upload recusa arquivo vazio com `UploadError` claro. Antes, um download
   que falhava no Colab (`wget -O` cria o arquivo mesmo com 403) subia 0 byte

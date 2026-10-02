@@ -21,7 +21,7 @@ abrir para a comunidade no futuro.
 | [`ocr`](../api/ocr.qmd) | `azure-document-intelligence` (padrão, processamento no Brasil), `mistral-ocr` (markdown, preserva tabelas) |
 | [`transcricao`](../api/transcricao.qmd) | `azure-speech` (padrão, com diarização, processamento no Brasil) |
 | [`estruturacao`](../api/estruturacao.qmd) | `gpt-4.1-mini` (padrão), `gpt-4.1`, `gpt-5-mini`, `gpt-5.6-luna`, `gpt-5.6-terra`, `gpt-6-luna`, `DeepSeek-V4-Flash`, `Mistral-Large-3`, `Kimi-K2.6` |
-| [`anonimizacao`](../api/anonimizacao.qmd) | `privacy-filter` (padrão), `lenerbr` |
+| [`anonimizacao`](../api/anonimizacao.qmd) | `lenerbr` (o `privacy-filter` roda só com `local=True`) |
 | [`embeddings`](../api/embeddings.qmd) | `text-embedding-3-small` (padrão), `text-embedding-3-large`, `embed-v-4-0`, `Cohere-embed-v3-multilingual` |
 | [`Client`](../api/Client.qmd) | `test_connection()`, `solicitacoes()` e atalhos para todos os serviços acima |
 
@@ -33,7 +33,7 @@ abrir para a comunidade no futuro.
 4. **Transcrição** com diarização (`SPEAKER_00`, `SPEAKER_01`...).
 5. **Estruturação** com os nove modelos sobre as mesmas ementas, numa tabela
    de comparação.
-6. **Anonimização** com os dois detectores.
+6. **Anonimização** com o LeNER-Br, nas três estratégias de mascaramento.
 7. **Embeddings** com os quatro modelos, com a similaridade entre as ementas.
 8. **Cliente**: confere a chave e lista suas solicitações.
 

@@ -3,9 +3,8 @@ Transcrição de áudio com Whisper (e opcionalmente diarização com pyannote).
 
 Modo nuvem
 ----------
-Azure Speech no Azure AI Foundry da FGV (default; diarização opcional,
-processamento no Brasil). Whisper Large V3 Turbo e WhisperX ainda são
-aceitos enquanto os servidores GPU próprios não forem desligados.
+Azure Speech no Azure AI Foundry da FGV (diarização opcional,
+processamento no Brasil).
 
 Modo local
 ----------
@@ -26,7 +25,7 @@ from labdados.client import Client
 from labdados.exceptions import LocalDependencyMissing
 
 OUTPUT_FORMAT = Literal["txt", "srt", "vtt"]
-MODELO_NUVEM = Literal["azure-speech", "whisper-large-v3-turbo", "whisperx"]
+MODELO_NUVEM = Literal["azure-speech"]
 MODELO_PADRAO_NUVEM = "azure-speech"
 ACCEPTED_EXTENSIONS = (".mp3", ".wav", ".m4a", ".ogg", ".flac", ".wma")
 
@@ -60,15 +59,14 @@ def transcricao(
     api_key
         Chave de API (modo nuvem).
     modelo
-        Modelo na nuvem: ``"azure-speech"`` (default — Azure AI Foundry da
-        FGV, processamento no Brasil, com diarização). ``"whisper-large-v3-turbo"``
-        e ``"whisperx"`` ainda são aceitos enquanto os servidores GPU próprios
-        não forem desligados. Ignorado com ``local=True`` (use ``modelo_local``).
+        Modelo na nuvem: ``"azure-speech"`` (único — Azure AI Foundry da
+        FGV, processamento no Brasil, com diarização). Ignorado com
+        ``local=True`` (use ``modelo_local``).
     idioma
         ISO 639-1 ou ``"auto"``. Default: português.
     diarizacao
         Se ``True``, separa falantes (``SPEAKER_00``, ``SPEAKER_01``...).
-        Na nuvem, funciona com ``"azure-speech"`` e ``"whisperx"``.
+        Disponível na nuvem; no modo local não há diarização.
     num_falantes
         Estimativa de quantas pessoas falam (``0`` = detectar). Só vale
         com ``diarizacao=True``.
@@ -130,10 +128,10 @@ def transcricao(
     """
     # Valida configurações antes de tocar no filesystem ou na rede — assim
     # erros de assinatura aparecem instantaneamente.
-    if not local and diarizacao and modelo == "whisper-large-v3-turbo":
+    if not local and modelo != MODELO_PADRAO_NUVEM:
         raise ValueError(
-            "Diarização requer modelo='azure-speech' ou 'whisperx'. O whisper-large-v3-turbo "
-            "não tem pipeline de diarização."
+            f"modelo={modelo!r} não roda na nuvem do escritório (só 'azure-speech'). "
+            "Para Whisper na sua máquina, use local=True com modelo_local."
         )
 
     audios = resolve_inputs(arquivos, extensoes=ACCEPTED_EXTENSIONS)

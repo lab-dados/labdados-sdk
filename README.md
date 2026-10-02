@@ -307,20 +307,11 @@ client.ocr(arquivos="pdfs/", saida="out/")
 
 ### O que vem por default no Docker
 
-- **OCR**: build CPU (`pymupdf-tesseract`). Para `paddleocr` (GPU), use o override `docker-compose.gpu.yml`.
-- **Transcrição**: build CPU (faster-whisper standalone). `model_id="whisperx"` retorna 400 com mensagem clara — para WhisperX + diarização, use `docker-compose.gpu.yml`.
-- **Estruturação**: usa o Azure OpenAI da FGV (`gpt-4.1-mini`, `gpt-5.6-luna`). Configure `AZURE_OPENAI_ENDPOINT` e `AZURE_OPENAI_KEY` no `.env` antes de subir (a equipe do escritório tem os valores).
+- **OCR, transcrição, estruturação e embeddings**: chamam o Azure AI Foundry da FGV. Configure `AZURE_FOUNDRY_ENDPOINT`/`AZURE_FOUNDRY_KEY` e `AZURE_OPENAI_ENDPOINT`/`AZURE_OPENAI_KEY` no `.env` antes de subir (a equipe do escritório tem os valores).
+- **Anonimização**: LeNER-Br em CPU (baixa o modelo do Hugging Face na primeira vez).
 - **Viabilidade**: funciona out-of-the-box.
 
-### Subindo com GPU local
-
-Se você tem NVIDIA GPU + [NVIDIA Container Toolkit](https://github.com/NVIDIA/nvidia-container-toolkit):
-
-```bash
-docker compose -f docker-compose.yml -f docker-compose.gpu.yml --profile services up -d
-```
-
-O override troca os builds de OCR e Transcrição para os Dockerfiles GPU (PaddleOCR + WhisperX + pyannote).
+Nenhum serviço do escritório usa GPU.
 
 ---
 

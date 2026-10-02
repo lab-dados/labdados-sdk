@@ -388,3 +388,14 @@ def test_client_tem_atalhos_de_todos_os_servicos_de_nuvem():
     c = labdados.Client(api_key="sk_lab_x", progress=False)
     for nome in ("ocr", "transcricao", "estruturacao", "anonimizacao", "embeddings", "solicitacoes"):
         assert callable(getattr(c, nome))
+
+
+def test_upload_recusa_arquivo_vazio(tmp_path: Path):
+    """REGRESSÃO: download que falhou no Colab gerava arquivo vazio e o serviço
+    quebrava no ffprobe com mensagem obscura. O SDK recusa antes de subir."""
+    from labdados.exceptions import UploadError
+
+    vazio = tmp_path / "audio.flac"
+    vazio.write_bytes(b"")
+    with pytest.raises(UploadError, match="vazio"):
+        labdados.Client(api_key="sk_lab_x", progress=False)._upload_files("transcription", [vazio])

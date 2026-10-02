@@ -169,6 +169,11 @@ class Client:
         """
         out: list[dict[str, Any]] = []
         paths_list = list(paths)
+        # Falha cedo com arquivo vazio — típico de download que deu errado no
+        # Colab (``wget -O`` cria o arquivo mesmo quando o servidor recusa).
+        vazios = [p.name for p in paths_list if p.stat().st_size == 0]
+        if vazios:
+            raise UploadError(f"Arquivo(s) vazio(s), nada para processar: {', '.join(vazios)}")
         for i, path in enumerate(paths_list, start=1):
             if self.progress:
                 render_status(f"upload {i}/{len(paths_list)}: {path.name}", frame=i)

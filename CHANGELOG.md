@@ -7,6 +7,15 @@ versionamento seguindo [SemVer](https://semver.org/lang/pt-BR/).
 
 ## [Unreleased]
 
+### Corrigido
+- Upload recusa arquivo vazio com `UploadError` claro. Antes, um download
+  que falhava no Colab (`wget -O` cria o arquivo mesmo com 403) subia 0 byte
+  e a transcrição quebrava no servidor com erro obscuro do `ffprobe`.
+- Notebooks baixam os arquivos de exemplo com User-Agent identificado e
+  checagem de tamanho; o áudio de exemplo passou a ser o trecho em domínio
+  público do discurso de posse de J. F. Kennedy (`jfk.flac`, no GitHub do
+  Whisper), em vez do Wikimedia, que bloqueia downloads vindos do Colab.
+
 ### Adicionado
 - Notebook `examples/notebooks/nuvem_todos_os_modelos.ipynb` (com badge
   "Open in Colab") que roda todos os serviços com API key variando os
